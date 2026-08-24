@@ -29,18 +29,11 @@ sync, including when HDR is changed from Windows Settings or by a game.
 ## Build
 
 ```
-.\scripts\build.ps1
+dotnet publish TandemHDR/TandemHDR.csproj -c Release -o .
 ```
 
-This produces a single self-contained `publish/TandemHDR.exe` (win-x64). Run it from
+This produces a single self-contained `TandemHDR.exe` (win-x64). Run it from
 anywhere; it lives in the tray.
-
-To cut a release — bumps the version, commits, tags, builds, uploads the zip to GitHub
-and removes the build intermediates afterwards (the local `publish\TandemHDR.exe` is kept):
-
-```
-.\scripts\release.ps1 0.2.0
-```
 
 ## Configuration
 

@@ -1,7 +1,6 @@
 # Build output
 bin/
 obj/
-publish/
 *.exe
 *.dll
 *.pdb
@@ -13,6 +12,9 @@ tandemhdr.log
 # Internal docs — everything except the public README
 *.md
 !README.md
+
+# Local tooling
+scripts/
 
 # Claude Code
 .claude/
