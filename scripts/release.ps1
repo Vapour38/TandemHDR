@@ -48,6 +48,7 @@ Download ``TandemHDR-v$Version.zip``, extract it anywhere, and run ``TandemHDR.e
     if ($LASTEXITCODE -ne 0) { throw 'gh release create failed.' }
 }
 finally {
-    Remove-Item "$root\publish", "$root\TandemHDR\bin", "$root\TandemHDR\obj", $stage, $zip -Recurse -Force -ErrorAction SilentlyContinue
+    # publish\TandemHDR.exe is kept as the local up-to-date build.
+    Remove-Item "$root\TandemHDR\bin", "$root\TandemHDR\obj", $stage, $zip -Recurse -Force -ErrorAction SilentlyContinue
     Pop-Location
 }
