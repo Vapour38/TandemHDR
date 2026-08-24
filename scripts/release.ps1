@@ -13,7 +13,7 @@ $ErrorActionPreference = 'Stop'
 $root = Split-Path $PSScriptRoot -Parent
 Push-Location $root
 try {
-    $csproj = 'src\TandemHDR\TandemHDR.csproj'
+    $csproj = 'TandemHDR\TandemHDR.csproj'
     $stage  = "$env:TEMP\TandemHDR-v$Version"
     $zip    = "$env:TEMP\TandemHDR-v$Version.zip"
 
@@ -48,6 +48,6 @@ Download ``TandemHDR-v$Version.zip``, extract it anywhere, and run ``TandemHDR.e
     if ($LASTEXITCODE -ne 0) { throw 'gh release create failed.' }
 }
 finally {
-    Remove-Item "$root\publish", "$root\src\TandemHDR\bin", "$root\src\TandemHDR\obj", $stage, $zip -Recurse -Force -ErrorAction SilentlyContinue
+    Remove-Item "$root\publish", "$root\TandemHDR\bin", "$root\TandemHDR\obj", $stage, $zip -Recurse -Force -ErrorAction SilentlyContinue
     Pop-Location
 }

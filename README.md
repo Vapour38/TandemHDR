@@ -29,7 +29,7 @@ sync, including when HDR is changed from Windows Settings or by a game.
 ## Build
 
 ```
-dotnet publish src/TandemHDR/TandemHDR.csproj -c Release -o publish
+dotnet publish TandemHDR/TandemHDR.csproj -c Release -o publish
 ```
 
 This produces a single self-contained `publish/TandemHDR.exe` (win-x64). Run it from
@@ -54,7 +54,7 @@ The two paths that matter are `sdrProfilePath` and `hdrProfilePath`, pointing at
 ## Project layout
 
 ```
-src/TandemHDR/
+TandemHDR/
   Configuration/   config load/save
   Controls/        shared WPF controls
   Native/          Win32 / display / colour-profile interop
