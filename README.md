@@ -39,7 +39,7 @@ To cut a release — bumps the version, commits, tags, builds, uploads the zip t
 and removes all build output afterwards:
 
 ```
-.\scriptselease.ps1 0.2.0
+.\scripts\release.ps1 0.2.0
 ```
 
 ## Configuration
