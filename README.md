@@ -35,6 +35,13 @@ dotnet publish src/TandemHDR/TandemHDR.csproj -c Release -o publish
 This produces a single self-contained `publish/TandemHDR.exe` (win-x64). Run it from
 anywhere; it lives in the tray.
 
+To cut a release — bumps the version, commits, tags, builds, uploads the zip to GitHub
+and removes all build output afterwards:
+
+```
+.\scriptselease.ps1 0.2.0
+```
+
 ## Configuration
 
 Settings are edited in the app's settings window (right-click the tray icon). They are
