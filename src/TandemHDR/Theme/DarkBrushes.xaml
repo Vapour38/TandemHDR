@@ -1,0 +1,44 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!-- Slate-blue palette per the CompactGUI reference. Surfaces are translucent rather
+         than the flat opaque fills of the reference, so the acrylic backdrop still reads
+         through: the window is tinted glass, not a painted panel. -->
+
+    <!-- Opaque fallback for systems without a system backdrop (pre-22H2). -->
+    <SolidColorBrush x:Key="WindowBackgroundBrush" Color="#2C3E50" />
+    <!-- Slate wash laid over the acrylic when a backdrop is available. -->
+    <SolidColorBrush x:Key="WindowTintBrush" Color="#A62C3E50" />
+    <!-- Content surface, one step lighter than the window. -->
+    <SolidColorBrush x:Key="SurfaceBrush" Color="#8C34495E" />
+    <!-- Banded row fill, one step lighter again. -->
+    <SolidColorBrush x:Key="RowBandBrush" Color="#663E5771" />
+
+    <SolidColorBrush x:Key="ForegroundPrimaryBrush" Color="#FFFFFF" />
+    <SolidColorBrush x:Key="ForegroundSecondaryBrush" Color="#D5DDE5" />
+    <SolidColorBrush x:Key="ForegroundMutedBrush" Color="#9BAAB8" />
+    <SolidColorBrush x:Key="ForegroundDisabledBrush" Color="#7A8B99" />
+
+    <SolidColorBrush x:Key="DividerBrush" Color="#1FFFFFFF" />
+    <SolidColorBrush x:Key="RowHoverBrush" Color="#14FFFFFF" />
+
+    <SolidColorBrush x:Key="ButtonBackgroundBrush" Color="#D93E5771" />
+    <SolidColorBrush x:Key="ButtonHoverBrush" Color="#F24A6784" />
+    <SolidColorBrush x:Key="ButtonPressedBrush" Color="#F2354D64" />
+
+    <SolidColorBrush x:Key="ControlBackgroundBrush" Color="#B33E5771" />
+    <SolidColorBrush x:Key="ControlBorderBrush" Color="#33FFFFFF" />
+    <SolidColorBrush x:Key="ControlBorderHoverBrush" Color="#59FFFFFF" />
+
+    <!-- Checked state for checkboxes; the reference's blue, not the system accent. -->
+    <SolidColorBrush x:Key="CheckAccentBrush" Color="#1A7FE8" />
+    <SolidColorBrush x:Key="CheckBorderBrush" Color="#8CD5DDE5" />
+    <SolidColorBrush x:Key="CheckGlyphBrush" Color="#FFFFFF" />
+
+    <SolidColorBrush x:Key="WarningForegroundBrush" Color="#FFC069" />
+    <SolidColorBrush x:Key="WarningDotBrush" Color="#FFB347" />
+    <SolidColorBrush x:Key="NeutralDotBrush" Color="#8CA0B2" />
+
+    <SolidColorBrush x:Key="AccentForegroundBrush" Color="#FFFFFF" />
+
+</ResourceDictionary>

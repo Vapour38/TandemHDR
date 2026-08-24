@@ -1,0 +1,29 @@
+# Build output
+bin/
+obj/
+publish/
+*.exe
+*.dll
+*.pdb
+
+# Local machine state
+config.json
+tandemhdr.log
+
+# Internal docs — everything except the public README
+*.md
+!README.md
+
+# Claude Code
+.claude/
+CLAUDE.md
+AGENTS.md
+.mcp.json
+
+# IDE / OS
+.vs/
+.idea/
+*.user
+*.suo
+Thumbs.db
+desktop.ini

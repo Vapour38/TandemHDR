@@ -1,0 +1,144 @@
+<Window x:Class="TandemHdr.Settings.GamePickerWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework"
+        x:ClassModifier="internal"
+        Title="Add games"
+        Width="760" Height="600"
+        MinWidth="620" MinHeight="440"
+        WindowStyle="None"
+        ResizeMode="CanResize"
+        WindowStartupLocation="CenterOwner"
+        Background="Transparent"
+        SnapsToDevicePixels="True"
+        TextOptions.TextFormattingMode="Display"
+        TextOptions.TextRenderingMode="ClearType"
+        FontFamily="{StaticResource UiFontFamily}">
+
+    <shell:WindowChrome.WindowChrome>
+        <shell:WindowChrome CaptionHeight="40"
+                            ResizeBorderThickness="6"
+                            CornerRadius="0"
+                            GlassFrameThickness="0"
+                            UseAeroCaptionButtons="False" />
+    </shell:WindowChrome.WindowChrome>
+
+    <Window.Resources>
+        <!-- One row shape for both tabs: they hold the same kind of thing, a candidate
+             executable, and differ only in where it was found. -->
+        <DataTemplate x:Key="EntryTemplate">
+            <Border Style="{StaticResource RowBand}">
+                <CheckBox Style="{StaticResource SettingsCheckBox}"
+                          IsChecked="{Binding IsSelected, Mode=TwoWay}"
+                          Click="OnSelectionChanged">
+                    <StackPanel>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="{Binding Name}" Style="{StaticResource BodyText}" />
+                            <!-- The chip earns its place only when it says something the tab
+                                 does not already say; on the Recently run tab every row would
+                                 read "Recent". -->
+                            <Border x:Name="SourceChip" Background="{DynamicResource RowHoverBrush}"
+                                    CornerRadius="3" Padding="6,1" Margin="8,0,0,0"
+                                    VerticalAlignment="Center">
+                                <TextBlock Text="{Binding Source}" Style="{StaticResource SecondaryText}"
+                                           FontSize="11" />
+                            </Border>
+                        </StackPanel>
+                        <TextBlock Style="{StaticResource PathText}" Margin="0,2,0,0"
+                                   Text="{Binding Detail}" />
+                    </StackPanel>
+                </CheckBox>
+            </Border>
+            <DataTemplate.Triggers>
+                <DataTrigger Binding="{Binding Source}" Value="">
+                    <Setter TargetName="SourceChip" Property="Visibility" Value="Collapsed" />
+                </DataTrigger>
+            </DataTemplate.Triggers>
+        </DataTemplate>
+    </Window.Resources>
+
+    <Grid x:Name="RootGrid">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="40" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <Grid Grid.Row="0">
+            <TextBlock Text="Add games" Style="{StaticResource CaptionTitleText}" Margin="16,0,0,0" />
+            <Button x:Name="CloseButton" Style="{StaticResource CloseCaptionButton}" Click="OnCancelClick"
+                    HorizontalAlignment="Right" VerticalAlignment="Top" ToolTip="Close">
+                <Path Data="M 0,0 L 10,10 M 10,0 L 0,10"
+                      Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
+                      StrokeThickness="1" />
+            </Button>
+        </Grid>
+
+        <Border Grid.Row="1" Background="{DynamicResource SurfaceBrush}">
+            <Grid Margin="24,16,24,20">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+
+                <TextBox x:Name="FilterBox" Grid.Row="0" Margin="0,0,0,12"
+                         Style="{StaticResource SearchBox}"
+                         Tag="Search…"
+                         TextChanged="OnFilterChanged" />
+
+                <TabControl Grid.Row="1" x:Name="SourceTabs" Style="{StaticResource NavTabControl}"
+                            Background="Transparent">
+
+                    <TabItem Header="Installed games" Style="{StaticResource NavTabItem}">
+                        <Grid Margin="0,12,0,0">
+                            <TextBlock Style="{StaticResource SecondaryText}" TextWrapping="Wrap"
+                                       VerticalAlignment="Top" Margin="2,0,0,0"
+                                       Text="From your Steam, Epic, Ubisoft, EA and Xbox libraries, most recently played first."
+                                       x:Name="GamesIntro" />
+                            <Grid Margin="0,26,0,0">
+                                <TextBlock x:Name="ScanningText" Style="{StaticResource SecondaryText}"
+                                           Text="Scanning your game libraries…" VerticalAlignment="Top" Margin="2,8,0,0" />
+                                <TextBlock x:Name="NoGamesText" Style="{StaticResource SecondaryText}"
+                                           VerticalAlignment="Top" Margin="2,8,0,0" Visibility="Collapsed"
+                                           TextWrapping="Wrap" />
+                                <ScrollViewer x:Name="GamesScroller" VerticalScrollBarVisibility="Auto"
+                                              Visibility="Collapsed">
+                                    <ItemsControl x:Name="GameList" ItemTemplate="{StaticResource EntryTemplate}" />
+                                </ScrollViewer>
+                            </Grid>
+                        </Grid>
+                    </TabItem>
+
+                    <TabItem Header="Recently run" Style="{StaticResource NavTabItem}">
+                        <Grid Margin="0,12,0,0">
+                            <TextBlock Style="{StaticResource SecondaryText}" TextWrapping="Wrap"
+                                       VerticalAlignment="Top" Margin="2,0,0,0"
+                                       Text="Programs you have launched before. Use this for games no launcher knows about — standalone installs, GOG, emulators." />
+                            <Grid Margin="0,26,0,0">
+                                <TextBlock x:Name="NoRecentText" Style="{StaticResource SecondaryText}"
+                                           VerticalAlignment="Top" Margin="2,8,0,0" Visibility="Collapsed"
+                                           TextWrapping="Wrap" />
+                                <ScrollViewer x:Name="RecentScroller" VerticalScrollBarVisibility="Auto"
+                                              Visibility="Collapsed">
+                                    <ItemsControl x:Name="RecentList" ItemTemplate="{StaticResource EntryTemplate}" />
+                                </ScrollViewer>
+                            </Grid>
+                        </Grid>
+                    </TabItem>
+
+                </TabControl>
+
+                <Grid Grid.Row="2" Margin="0,14,0,0">
+                    <TextBlock x:Name="CountText" Style="{StaticResource SecondaryText}"
+                               VerticalAlignment="Center" HorizontalAlignment="Left" />
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                        <Button Content="Cancel" Style="{StaticResource SecondaryButton}"
+                                MinWidth="96" Click="OnCancelClick" />
+                        <Button x:Name="AddButton" Content="Add selected" Style="{StaticResource PrimaryButton}"
+                                MinWidth="120" Margin="10,0,0,0" IsEnabled="False" Click="OnAddClick" />
+                    </StackPanel>
+                </Grid>
+            </Grid>
+        </Border>
+    </Grid>
+</Window>
