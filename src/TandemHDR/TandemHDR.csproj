@@ -15,6 +15,10 @@
     <SelfContained>true</SelfContained>
     <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
     <DebugType>none</DebugType>
+    <Version>0.1.0</Version>
+    <Product>Tandem HDR</Product>
+    <Company>Lachlan Dennis</Company>
+    <Copyright>Copyright (c) 2026 Lachlan Dennis</Copyright>
     <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
   </PropertyGroup>
 
