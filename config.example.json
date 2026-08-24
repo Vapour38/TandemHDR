@@ -1,0 +1,8 @@
+{
+  "sdrProfilePath": "",
+  "hdrProfilePath": "",
+  "profileRefreshIntervalSeconds": 60,
+  "hdrStateCheckIntervalSeconds": 10,
+  "syncProfilesWithExternalHdrChanges": true,
+  "startWithWindows": true
+}
