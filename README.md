@@ -1,66 +1,31 @@
 # Tandem HDR
 
-A Windows system-tray utility that toggles HDR on and off, and automatically applies the
-right ICC display profile for whichever mode is active.
+A Windows system-tray utility that toggles HDR on and off and automatically forces the
+right ICC display profile.
 
-SDR and HDR generally need different calibrated profiles. Tools that only flip the HDR
-switch leave you re-selecting a profile by hand every time. Tandem HDR keeps the two in
-sync, including when HDR is changed from Windows Settings or by a game.
+Windows 11 greatly improves the HDR experience, but switching between SDR and HDR can often result in the incorrect ICC profile being applied, resulting in washed-out colours. Tandem HDR keeps the two in sync, including when HDR is changed externally.
 
-## Features
+## Usage
 
-- Left-click the tray icon to toggle HDR; right-click for a native menu.
-- Applies the configured SDR or HDR ICC profile on every switch.
-- Detects HDR changes made outside the app and re-syncs the profile.
-- Re-applies the active profile periodically, guarding against Windows resetting it.
-- Per-program auto-switching: nominate executables that force HDR on while they run, and
-  the previous HDR state is restored when the last one exits.
-- Game picker that reads Steam, Epic, Ubisoft, EA and Xbox library records, so you choose
-  a game from a list instead of hunting for its `.exe`. A "Recently run" tab covers games
-  no launcher knows about — GOG, standalone installs, emulators.
-- Optional start with Windows.
+The tray icon will reflect if HDR is on or off, and left-clicking will open the settings menu. 
+On toggle, the configured SDR or HDR ICC profile will be applied and re-synced when external changes occur.
+Profiles must be configured first through the settings dialogue, opened via right-click.
 
-## Requirements
-
-- Windows 10/11 with an HDR-capable display.
-- [.NET 10 SDK](https://dotnet.microsoft.com/download) to build. The published binary is
-  self-contained and needs no runtime installed.
-
-## Build
-
-```
-dotnet publish TandemHDR/TandemHDR.csproj -c Release -o .
-```
-
-This produces a single self-contained `TandemHDR.exe` (win-x64). Run it from
-anywhere; it lives in the tray.
+Per-program auto-switching can also be configured. When opened, configured games and apps will automatically switch to HDR and restore when exited. 
+Games will be detected from standard game launcher installs, or can be picked from a recently used list. 
 
 ## Configuration
 
-Settings are edited in the app's settings window (right-click the tray icon). They are
-stored in `config.json` beside the executable — see `config.example.json` for the shape.
-The two paths that matter are `sdrProfilePath` and `hdrProfilePath`, pointing at your
-`.icc` / `.icm` profiles.
+Configurations are stored in `config.json` beside the executable. See `config.example.json` for the shape.
 
-`tandemhdr.log` is written next to the executable as well.
+`sdrProfilePath` and `hdrProfilePath` should point at your `.icc` / `.icm` profiles.
 
-## Project layout
-
-```
-TandemHDR/
-  Configuration/   config load/save
-  Controls/        shared WPF controls
-  Native/          Win32 / display / colour-profile interop
-  Services/        HDR, ICC, gamma, game scanning, process watching
-  Settings/        settings and game-picker windows
-  Theme/           brushes and control styles
-```
-
-## Prior art
-
-Tray icon behaviour and the forced dark native context menu follow the approach taken by
-[HDRTray](https://github.com/res2k/HDRTray).
+Log files are written out to `tandemhdr.log`.
 
 ## Licence
 
-MIT — see [LICENSE](LICENSE).
+Copyright (C) 2026 Lachlan Dennis
+
+This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
