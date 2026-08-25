@@ -127,7 +127,7 @@ internal static class UpdateService
             string body = root.TryGetProperty("body", out var b) ? b.GetString() ?? string.Empty : string.Empty;
             // Lazy and generously bounded: the hash trails the "SHA-256" label after
             // whatever punctuation and file name the notes happen to put in between.
-            var match = Regex.Match(body, "SHA-?256[\s\S]{0,120}?([0-9a-fA-F]{64})", RegexOptions.IgnoreCase);
+            var match = Regex.Match(body, @"SHA-?256[\s\S]{0,120}?([0-9a-fA-F]{64})", RegexOptions.IgnoreCase);
             if (!match.Success)
                 return Fail($"Release v{latest} publishes no SHA-256 to verify against");
 
