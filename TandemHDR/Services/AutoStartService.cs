@@ -9,6 +9,10 @@ namespace TandemHdr.Services;
 internal static class AutoStartService
 {
     private const string AppName = "Tandem HDR";
+
+    /// <summary>Marks a launch as coming from the Windows Run key, so the tray starts
+    /// quietly instead of opening the settings window the way a manual launch does.</summary>
+    public const string StartupArgument = "--startup";
     private const string RegistryRunKey = @"SOFTWARE\Microsoft\Windows\CurrentVersion\Run";
 
     public static bool IsEnabled()
@@ -25,7 +29,7 @@ internal static class AutoStartService
         if (enable)
         {
             string exePath = Environment.ProcessPath ?? Application.ExecutablePath;
-            string desired = $"\"{exePath}\"";
+            string desired = $"\"{exePath}\" {StartupArgument}";
             // Always rewrite: the entry goes stale if the exe is ever moved.
             if (key.GetValue(AppName) as string != desired)
             {

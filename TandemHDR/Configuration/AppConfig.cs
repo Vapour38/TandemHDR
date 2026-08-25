@@ -8,6 +8,8 @@ internal class AppConfig
     public int HdrStateCheckIntervalSeconds { get; set; } = 5;
     public bool SyncProfilesWithExternalHdrChanges { get; set; } = true;
     public bool StartWithWindows { get; set; } = true;
+    public bool ShowNotifications { get; set; } = true;
+    public bool CheckForUpdatesOnStart { get; set; } = true;
 
     /// <summary>Full paths of programs that should force HDR on while they are running.
     /// Matching is by executable file name, so a game that relaunches itself from a

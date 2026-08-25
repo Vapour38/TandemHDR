@@ -62,7 +62,8 @@
 
         <!-- Tabs -->
         <TabControl Grid.Row="1" x:Name="Tabs" Style="{StaticResource NavTabControl}"
-                    Background="{DynamicResource SurfaceBrush}">
+                    Background="{DynamicResource SurfaceBrush}"
+                    Loaded="OnTabsLoaded" SelectionChanged="OnTabsSelectionChanged">
 
             <TabItem Header="Settings" Style="{StaticResource NavTabItem}">
                 <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="0">
@@ -140,8 +141,11 @@
                                       Content="Start with Windows" Margin="0,0,0,12"
                                       Checked="OnAutoStartToggled" Unchecked="OnAutoStartToggled" />
                             <CheckBox x:Name="SyncExternalCheck" Style="{StaticResource SettingsCheckBox}"
-                                      Content="Sync profile when HDR changes outside the app"
+                                      Content="Sync profile when HDR changes outside the app" Margin="0,0,0,12"
                                       Checked="OnSyncExternalToggled" Unchecked="OnSyncExternalToggled" />
+                            <CheckBox x:Name="NotificationsCheck" Style="{StaticResource SettingsCheckBox}"
+                                      Content="Show notifications when the profile changes"
+                                      Checked="OnNotificationsToggled" Unchecked="OnNotificationsToggled" />
                         </StackPanel>
 
                         <Border Style="{StaticResource Divider}" />
@@ -184,6 +188,39 @@
                                         <TextBlock Text="sec" Style="{StaticResource SecondaryText}"
                                                    VerticalAlignment="Center" Margin="10,0,0,0" />
                                     </StackPanel>
+                                </Grid>
+                            </Border>
+
+                        </StackPanel>
+
+                        <Border Style="{StaticResource Divider}" />
+
+                        <!-- Section 4 - Updates -->
+                        <ToggleButton x:Name="UpdatesToggle" Style="{StaticResource SectionHeaderToggle}"
+                                      Content="Updates"
+                                      Checked="OnUpdatesToggled" Unchecked="OnUpdatesToggled" />
+
+                        <StackPanel x:Name="UpdatesPanel" Margin="0,8,0,0">
+
+                            <CheckBox x:Name="UpdateOnStartCheck" Style="{StaticResource SettingsCheckBox}"
+                                      Content="Check for updates when Tandem HDR starts" Margin="6,2,0,12"
+                                      Checked="OnUpdateOnStartToggled" Unchecked="OnUpdateOnStartToggled" />
+
+                            <Border Style="{StaticResource RowBand}" Margin="0">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel Grid.Column="0" VerticalAlignment="Center" Margin="0,0,12,0">
+                                        <TextBlock x:Name="UpdateStatusText" Style="{StaticResource BodyText}" />
+                                        <TextBlock x:Name="UpdateDetailText" Style="{StaticResource SecondaryText}"
+                                                   Margin="0,2,0,0" TextWrapping="Wrap" Visibility="Collapsed" />
+                                    </StackPanel>
+                                    <Button x:Name="UpdateActionButton" Grid.Column="1" Content="Check now"
+                                            Style="{StaticResource SecondaryButton}"
+                                            HorizontalAlignment="Right" VerticalAlignment="Center" MinWidth="150"
+                                            Click="OnUpdateActionClick" />
                                 </Grid>
                             </Border>
 

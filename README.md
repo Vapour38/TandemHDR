@@ -7,9 +7,9 @@ Windows 11 greatly improves the HDR experience, but switching between SDR and HD
 
 ## Usage
 
-The tray icon will reflect if HDR is on or off, and left-clicking will open the settings menu. 
+The tray icon will reflect if HDR is on or off, and left-clicking toggles HDR. Right-click opens the menu, with Settings and Quit.
 On toggle, the configured SDR or HDR ICC profile will be applied and re-synced when external changes occur.
-Profiles must be configured first through the settings dialogue, opened via right-click.
+Profiles must be configured first through the settings window, opened from that menu — or by running `TandemHDR.exe` yourself, which opens it directly.
 
 Per-program auto-switching can also be configured. When opened, configured games and apps will automatically switch to HDR and restore when exited. 
 Games will be detected from standard game launcher installs, or can be picked from a recently used list. 

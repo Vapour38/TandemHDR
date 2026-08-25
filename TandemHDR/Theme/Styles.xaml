@@ -72,23 +72,16 @@
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="TabItem">
-                    <Grid>
-                        <Border x:Name="Bg" Background="Transparent" Padding="14,9" Margin="0,0,6,0">
-                            <ContentPresenter ContentSource="Header" VerticalAlignment="Center"
-                                              TextElement.Foreground="{TemplateBinding Foreground}" />
-                        </Border>
-                        <Border x:Name="Underline" Height="2" VerticalAlignment="Bottom"
-                                Margin="14,0,20,0" CornerRadius="1"
-                                Background="{DynamicResource CheckAccentBrush}"
-                                Visibility="Collapsed" />
-                    </Grid>
+                    <Border x:Name="Bg" Background="Transparent" Padding="14,9" Margin="0,0,6,0">
+                        <ContentPresenter ContentSource="Header" VerticalAlignment="Center"
+                                          TextElement.Foreground="{TemplateBinding Foreground}" />
+                    </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
                             <Setter Property="Foreground" Value="{DynamicResource ForegroundSecondaryBrush}" />
                         </Trigger>
                         <Trigger Property="IsSelected" Value="True">
                             <Setter Property="Foreground" Value="{DynamicResource ForegroundPrimaryBrush}" />
-                            <Setter TargetName="Underline" Property="Visibility" Value="Visible" />
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
@@ -109,7 +102,15 @@
                         </Grid.RowDefinitions>
                         <Border Grid.Row="0" BorderThickness="0,0,0,1"
                                 BorderBrush="{DynamicResource DividerBrush}">
-                            <TabPanel IsItemsHost="True" Panel.ZIndex="1" Margin="10,0,0,0" />
+                            <Grid x:Name="TabStrip">
+                                <TabPanel IsItemsHost="True" Panel.ZIndex="1" Margin="10,0,0,0" />
+                                <!-- Shared underline: SettingsWindow slides and resizes it to the
+                                     selected tab, so switching tabs glides instead of snapping. -->
+                                <Border x:Name="SelectionIndicator" Height="2" Width="0"
+                                        CornerRadius="1" HorizontalAlignment="Left"
+                                        VerticalAlignment="Bottom"
+                                        Background="{DynamicResource CheckAccentBrush}" />
+                            </Grid>
                         </Border>
                         <!-- TemplateBinding, not a hardcoded surface: nested inside a panel
                              that already carries SurfaceBrush, a second one stacks into a

@@ -29,7 +29,8 @@ internal static class WpfHost
         Func<string?> getActiveProfileName,
         Action onIntervalsChanged,
         Action onProfileChanged,
-        Action onProgramsChanged)
+        Action onProgramsChanged,
+        Action onRestartForUpdate)
     {
         EnsureApplication();
 
@@ -41,7 +42,7 @@ internal static class WpfHost
 
         _window = new SettingsWindow(config, displayService, hdrService, iccService,
             getCurrentState, getActiveProfileName, onIntervalsChanged, onProfileChanged,
-            onProgramsChanged);
+            onProgramsChanged, onRestartForUpdate);
         _window.Closed += (_, _) => _window = null;
         _window.Show();
         _window.Activate();

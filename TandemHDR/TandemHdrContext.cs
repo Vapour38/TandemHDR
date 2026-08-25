@@ -80,7 +80,8 @@ internal class TandemHdrContext : ApplicationContext
     #endregion
 
     public TandemHdrContext(AppConfig config, DisplayService displayService,
-        HdrService hdrService, IccProfileService iccService, HdrState initialState)
+        HdrService hdrService, IccProfileService iccService, HdrState initialState,
+        bool openSettingsOnStart)
     {
         _config = config;
         _displayService = displayService;
@@ -138,6 +139,43 @@ internal class TandemHdrContext : ApplicationContext
         // Show notification for the initial profile application
         var startupProfile = _iccService.ApplyProfileForState(initialState, _config.SdrProfilePath, _config.HdrProfilePath);
         ShowProfileNotification(startupProfile, initialState);
+
+        if (_config.CheckForUpdatesOnStart)
+            _ = CheckForUpdatesOnStart();
+
+        if (openSettingsOnStart)
+            OpenSettings();
+    }
+
+    /// <summary>The background check the "check on start" setting drives. Its only visible
+    /// effect is the balloon — the settings window reads the cached result.</summary>
+    private async Task CheckForUpdatesOnStart()
+    {
+        var result = await UpdateService.CheckAsync();
+        if (result.Status == UpdateStatus.Available)
+            _trayIcon.ShowBalloonTip(5000, AppName,
+                $"Version {result.LatestVersion} is available. Open settings to install it.", ToolTipIcon.Info);
+    }
+
+    /// <summary>Swaps in the downloaded exe and hands over to it. Called from the settings
+    /// window, which has already told the user this restarts the app.</summary>
+    private void RestartForUpdate()
+    {
+        if (UpdateService.ApplyStagedUpdateAndRestart())
+            Quit();
+        else
+            _trayIcon.ShowBalloonTip(5000, AppName,
+                "Could not replace the app's files. Check the log for details.", ToolTipIcon.Error);
+    }
+
+    private void Quit()
+    {
+        _stateCheckTimer.Stop();
+        _profileRefreshTimer.Stop();
+        _gameWatcher.Stop();
+        _trayIcon.Visible = false;
+        _trayIcon.Dispose();
+        Application.Exit();
     }
 
     private void OnTrayIconClick(object? sender, MouseEventArgs e)
@@ -195,12 +233,7 @@ internal class TandemHdrContext : ApplicationContext
                     OpenSettings();
                     break;
                 case IDM_QUIT:
-                    _stateCheckTimer.Stop();
-                    _profileRefreshTimer.Stop();
-                    _gameWatcher.Stop();
-                    _trayIcon.Visible = false;
-                    _trayIcon.Dispose();
-                    Application.Exit();
+                    Quit();
                     break;
             }
         }
@@ -217,7 +250,8 @@ internal class TandemHdrContext : ApplicationContext
             getActiveProfileName: () => _lastNotifiedProfile,
             onIntervalsChanged: OnSettingsIntervalsChanged,
             onProfileChanged: OnSettingsProfileChanged,
-            onProgramsChanged: ApplyWatchListFromConfig);
+            onProgramsChanged: ApplyWatchListFromConfig,
+            onRestartForUpdate: RestartForUpdate);
     }
 
     /// <summary>Live-applies interval edits made in the settings window to the already-running timers.</summary>
@@ -357,6 +391,8 @@ internal class TandemHdrContext : ApplicationContext
             return;
 
         _lastNotifiedProfile = profileName;
+        if (!_config.ShowNotifications) return;
+
         string mode = state == HdrState.On ? "HDR" : "SDR";
         _trayIcon.ShowBalloonTip(3000, AppName, $"Switched to {mode}: Applied '{profileName}'", ToolTipIcon.Info);
     }

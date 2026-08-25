@@ -4,5 +4,7 @@
   "profileRefreshIntervalSeconds": 60,
   "hdrStateCheckIntervalSeconds": 10,
   "syncProfilesWithExternalHdrChanges": true,
-  "startWithWindows": true
+  "startWithWindows": true,
+  "showNotifications": true,
+  "checkForUpdatesOnStart": true
 }

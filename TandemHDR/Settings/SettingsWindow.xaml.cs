@@ -1,8 +1,10 @@
 using System.Collections.ObjectModel;
 using System.IO;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Interop;
 using System.Windows.Media;
+using System.Windows.Media.Animation;
 using System.Windows.Threading;
 using TandemHdr.Configuration;
 using TandemHdr.Native;
@@ -23,9 +25,13 @@ internal partial class SettingsWindow : Window
     private readonly Action _onIntervalsChanged;
     private readonly Action _onProfileChanged;
     private readonly Action _onProgramsChanged;
+    private readonly Action _onRestartForUpdate;
     private readonly DispatcherTimer _statusTimer;
 
     private bool _initializing = true;
+
+    /// <summary>What the Updates section is currently showing, and what its button acts on.</summary>
+    private UpdateCheck _update = UpdateService.Last;
 
     private readonly ObservableCollection<ProgramEntry> _programs = [];
 
@@ -42,7 +48,8 @@ internal partial class SettingsWindow : Window
         Func<string?> getActiveProfileName,
         Action onIntervalsChanged,
         Action onProfileChanged,
-        Action onProgramsChanged)
+        Action onProgramsChanged,
+        Action onRestartForUpdate)
     {
         InitializeComponent();
 
@@ -53,6 +60,7 @@ internal partial class SettingsWindow : Window
         _onIntervalsChanged = onIntervalsChanged;
         _onProfileChanged = onProfileChanged;
         _onProgramsChanged = onProgramsChanged;
+        _onRestartForUpdate = onRestartForUpdate;
 
         // Set after InitializeComponent, not via IsChecked="True" in XAML: the Checked event
         // fires while BAML is still building the tree, before the panel fields it touches
@@ -60,6 +68,7 @@ internal partial class SettingsWindow : Window
         ProfilesToggle.IsChecked = true;
         SystemToggle.IsChecked = true;
         TimingToggle.IsChecked = true;
+        UpdatesToggle.IsChecked = true;
 
         ProgramsList.ItemsSource = _programs;
 
@@ -93,6 +102,61 @@ internal partial class SettingsWindow : Window
         RootGrid.Background = (Brush)FindResource(backdropApplied ? "WindowTintBrush" : "WindowBackgroundBrush");
     }
 
+    private void OnTabsLoaded(object sender, RoutedEventArgs e)
+    {
+        // The header strip has not been arranged yet when Loaded fires, so place the bar
+        // once the layout pass has run — and without animating it in from zero width.
+        Dispatcher.BeginInvoke(DispatcherPriority.Loaded, new Action(() => MoveTabIndicator(animate: false)));
+    }
+
+    private void OnTabsSelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        // Selection changes inside the tab content (e.g. the programs list) bubble up here too.
+        if (!ReferenceEquals(e.OriginalSource, Tabs)) return;
+
+        MoveTabIndicator(animate: true);
+    }
+
+    /// <summary>Slides the shared underline in the TabControl template onto the selected tab.
+    /// The insets mirror the tab item's own padding so the bar sits under the label, not the
+    /// whole hit area.</summary>
+    private void MoveTabIndicator(bool animate)
+    {
+        const double leadingInset = 14;   // tab padding
+        const double trailingInset = 20;  // tab padding plus the 6px gap to the next tab
+
+        if (Tabs.Template.FindName("SelectionIndicator", Tabs) is not Border indicator ||
+            Tabs.Template.FindName("TabStrip", Tabs) is not FrameworkElement strip ||
+            Tabs.SelectedItem is not TabItem item || item.ActualWidth <= 0)
+            return;
+
+        // Built here rather than in the template: freezables declared inside a ControlTemplate
+        // come back frozen, and a frozen transform cannot be animated.
+        if (indicator.RenderTransform is not TranslateTransform slide)
+        {
+            slide = new TranslateTransform();
+            indicator.RenderTransform = slide;
+        }
+
+        double x = item.TranslatePoint(new System.Windows.Point(0, 0), strip).X + leadingInset;
+        double width = Math.Max(item.ActualWidth - leadingInset - trailingInset, 0);
+
+        if (!animate)
+        {
+            // Clear first: a held animation would otherwise keep overriding the local value.
+            slide.BeginAnimation(TranslateTransform.XProperty, null);
+            indicator.BeginAnimation(WidthProperty, null);
+            slide.X = x;
+            indicator.Width = width;
+            return;
+        }
+
+        var glide = new Duration(TimeSpan.FromMilliseconds(220));
+        var ease = new CubicEase { EasingMode = EasingMode.EaseInOut };
+        slide.BeginAnimation(TranslateTransform.XProperty, new DoubleAnimation(x, glide) { EasingFunction = ease });
+        indicator.BeginAnimation(WidthProperty, new DoubleAnimation(width, glide) { EasingFunction = ease });
+    }
+
     private void LoadFromConfig()
     {
         SdrPathText.Text = DisplayPath(_config.SdrProfilePath);
@@ -102,7 +166,14 @@ internal partial class SettingsWindow : Window
 
         AutoStartCheck.IsChecked = AutoStartService.IsEnabled();
         SyncExternalCheck.IsChecked = _config.SyncProfilesWithExternalHdrChanges;
+        NotificationsCheck.IsChecked = _config.ShowNotifications;
         AutoSwitchCheck.IsChecked = _config.AutoSwitchForPrograms;
+        UpdateOnStartCheck.IsChecked = _config.CheckForUpdatesOnStart;
+
+        // A staged exe from an earlier session outlives the check that produced it.
+        if (UpdateService.IsUpdateStaged())
+            _update = _update with { Status = UpdateStatus.Ready };
+        RenderUpdateState();
 
         _programs.Clear();
         foreach (var path in _config.HdrPrograms)
@@ -212,6 +283,63 @@ internal partial class SettingsWindow : Window
         ConfigManager.Save(_config);
     }
 
+    private void OnUpdateOnStartToggled(object sender, RoutedEventArgs e)
+    {
+        if (_initializing) return;
+
+        _config.CheckForUpdatesOnStart = UpdateOnStartCheck.IsChecked == true;
+        ConfigManager.Save(_config);
+    }
+
+    /// <summary>One button for the whole flow: check, then download, then restart. What it
+    /// does next is whatever the section is currently showing.</summary>
+    private async void OnUpdateActionClick(object sender, RoutedEventArgs e)
+    {
+        if (_update.Status == UpdateStatus.Ready)
+        {
+            _onRestartForUpdate();
+            return;
+        }
+
+        bool downloading = _update.Status == UpdateStatus.Available;
+        UpdateActionButton.IsEnabled = false;
+        UpdateStatusText.Text = downloading ? $"Downloading version {_update.LatestVersion}…" : "Checking for updates…";
+        UpdateDetailText.Visibility = Visibility.Collapsed;
+
+        _update = downloading ? await UpdateService.DownloadAsync(_update) : await UpdateService.CheckAsync();
+
+        UpdateActionButton.IsEnabled = true;
+        RenderUpdateState();
+    }
+
+    private void RenderUpdateState()
+    {
+        var current = UpdateService.CurrentVersion;
+        var (status, detail, action) = _update.Status switch
+        {
+            UpdateStatus.UpToDate => ($"Up to date (v{current})", null, "Check now"),
+            UpdateStatus.Available => ($"Version {_update.LatestVersion} is available",
+                                       $"You have v{current}.", "Download and install"),
+            UpdateStatus.Ready => ("Update ready to install",
+                                   "Tandem HDR will restart to finish updating.", "Restart now"),
+            UpdateStatus.Failed => ("Could not check for updates", _update.Error, "Try again"),
+            _ => ($"Version {current}", null, "Check now"),
+        };
+
+        UpdateStatusText.Text = status;
+        UpdateDetailText.Text = detail ?? string.Empty;
+        UpdateDetailText.Visibility = detail == null ? Visibility.Collapsed : Visibility.Visible;
+        UpdateActionButton.Content = action;
+    }
+
+    private void OnNotificationsToggled(object sender, RoutedEventArgs e)
+    {
+        if (_initializing) return;
+
+        _config.ShowNotifications = NotificationsCheck.IsChecked == true;
+        ConfigManager.Save(_config);
+    }
+
     private void OnIntervalCommitted(object? sender, EventArgs e)
     {
         if (_initializing) return;
@@ -307,6 +435,9 @@ internal partial class SettingsWindow : Window
 
     private void OnTimingToggled(object sender, RoutedEventArgs e)
         => TimingPanel.Visibility = Collapsed(TimingToggle);
+
+    private void OnUpdatesToggled(object sender, RoutedEventArgs e)
+        => UpdatesPanel.Visibility = Collapsed(UpdatesToggle);
 
     private static Visibility Collapsed(System.Windows.Controls.Primitives.ToggleButton header)
         => header.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
