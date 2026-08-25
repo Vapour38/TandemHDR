@@ -24,4 +24,7 @@ Log files are written out to `tandemhdr.log`.
 
 ## Licence
 
-MIT. Copyright (c) 2026 Lachlan Dennis. See [LICENSE](LICENSE) for the full text.
+MIT. 
+Copyright (c) 2026
+
+See [LICENSE](LICENSE) for the full text.
