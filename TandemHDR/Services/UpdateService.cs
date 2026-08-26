@@ -165,8 +165,7 @@ internal static class UpdateService
 
             using (var archive = ZipFile.OpenRead(zipPath))
             {
-                // Only the exe: the zip also ships a default config.json, which must not
-                // land on top of the user's own settings.
+                // Only the exe is taken out of the zip; nothing else in it is installed.
                 var entry = archive.GetEntry(ExeName)
                     ?? throw new InvalidOperationException($"The release zip contains no {ExeName}");
 

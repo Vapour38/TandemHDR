@@ -6,9 +6,6 @@ obj/
 *.dll
 *.pdb
 
-# Local machine state
-config.json
-tandemhdr.log
 
 # Internal docs — everything except the public README
 *.md

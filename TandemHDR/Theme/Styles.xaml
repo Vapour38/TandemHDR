@@ -222,7 +222,11 @@
                                 BorderBrush="{DynamicResource CheckBorderBrush}"
                                 BorderThickness="1.5"
                                 VerticalAlignment="Center"
+                                RenderTransformOrigin="0.5,0.5"
                                 SnapsToDevicePixels="True">
+                            <Border.RenderTransform>
+                                <ScaleTransform x:Name="BoxScale" ScaleX="1" ScaleY="1" />
+                            </Border.RenderTransform>
                             <Path x:Name="Glyph"
                                   Data="M 0,4 L 3.6,7.6 L 10,1"
                                   Stroke="{DynamicResource CheckGlyphBrush}"
@@ -232,7 +236,12 @@
                                   Width="11" Height="8"
                                   Stretch="Uniform"
                                   HorizontalAlignment="Center" VerticalAlignment="Center"
-                                  Visibility="Collapsed" />
+                                  RenderTransformOrigin="0.5,0.5"
+                                  Opacity="0">
+                                <Path.RenderTransform>
+                                    <ScaleTransform x:Name="GlyphScale" ScaleX="0.6" ScaleY="0.6" />
+                                </Path.RenderTransform>
+                            </Path>
                         </Border>
                         <ContentPresenter Margin="14,0,0,0"
                                           VerticalAlignment="Center"
@@ -243,7 +252,56 @@
                         <Trigger Property="IsChecked" Value="True">
                             <Setter TargetName="Box" Property="Background" Value="{DynamicResource CheckAccentBrush}" />
                             <Setter TargetName="Box" Property="BorderBrush" Value="{DynamicResource CheckAccentBrush}" />
-                            <Setter TargetName="Glyph" Property="Visibility" Value="Visible" />
+                            <!-- The tick fades and springs up while the box pops, so ticking
+                                 and unticking read as one short motion rather than a swap. -->
+                            <Trigger.EnterActions>
+                                <BeginStoryboard>
+                                    <Storyboard>
+                                        <DoubleAnimation Storyboard.TargetName="Glyph" Storyboard.TargetProperty="Opacity"
+                                                         To="1" Duration="0:0:0.12" />
+                                        <DoubleAnimation Storyboard.TargetName="GlyphScale" Storyboard.TargetProperty="ScaleX"
+                                                         To="1" Duration="0:0:0.18">
+                                            <DoubleAnimation.EasingFunction>
+                                                <BackEase Amplitude="0.6" EasingMode="EaseOut" />
+                                            </DoubleAnimation.EasingFunction>
+                                        </DoubleAnimation>
+                                        <DoubleAnimation Storyboard.TargetName="GlyphScale" Storyboard.TargetProperty="ScaleY"
+                                                         To="1" Duration="0:0:0.18">
+                                            <DoubleAnimation.EasingFunction>
+                                                <BackEase Amplitude="0.6" EasingMode="EaseOut" />
+                                            </DoubleAnimation.EasingFunction>
+                                        </DoubleAnimation>
+                                        <DoubleAnimation Storyboard.TargetName="BoxScale" Storyboard.TargetProperty="ScaleX"
+                                                         From="0.85" To="1" Duration="0:0:0.2">
+                                            <DoubleAnimation.EasingFunction>
+                                                <BackEase Amplitude="0.5" EasingMode="EaseOut" />
+                                            </DoubleAnimation.EasingFunction>
+                                        </DoubleAnimation>
+                                        <DoubleAnimation Storyboard.TargetName="BoxScale" Storyboard.TargetProperty="ScaleY"
+                                                         From="0.85" To="1" Duration="0:0:0.2">
+                                            <DoubleAnimation.EasingFunction>
+                                                <BackEase Amplitude="0.5" EasingMode="EaseOut" />
+                                            </DoubleAnimation.EasingFunction>
+                                        </DoubleAnimation>
+                                    </Storyboard>
+                                </BeginStoryboard>
+                            </Trigger.EnterActions>
+                            <Trigger.ExitActions>
+                                <BeginStoryboard>
+                                    <Storyboard>
+                                        <DoubleAnimation Storyboard.TargetName="Glyph" Storyboard.TargetProperty="Opacity"
+                                                         To="0" Duration="0:0:0.1" />
+                                        <DoubleAnimation Storyboard.TargetName="GlyphScale" Storyboard.TargetProperty="ScaleX"
+                                                         To="0.6" Duration="0:0:0.1" />
+                                        <DoubleAnimation Storyboard.TargetName="GlyphScale" Storyboard.TargetProperty="ScaleY"
+                                                         To="0.6" Duration="0:0:0.1" />
+                                        <DoubleAnimation Storyboard.TargetName="BoxScale" Storyboard.TargetProperty="ScaleX"
+                                                         From="0.9" To="1" Duration="0:0:0.16" />
+                                        <DoubleAnimation Storyboard.TargetName="BoxScale" Storyboard.TargetProperty="ScaleY"
+                                                         From="0.9" To="1" Duration="0:0:0.16" />
+                                    </Storyboard>
+                                </BeginStoryboard>
+                            </Trigger.ExitActions>
                         </Trigger>
                         <MultiTrigger>
                             <MultiTrigger.Conditions>

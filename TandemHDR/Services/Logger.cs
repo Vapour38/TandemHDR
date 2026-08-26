@@ -1,39 +1,13 @@
-using System.IO;
+using System.Diagnostics;
 
 namespace TandemHdr.Services;
 
+/// <summary>
+/// Diagnostics go to the debugger's output window only. Nothing is written to disk: the
+/// app is a single exe that must not leave files beside itself.
+/// </summary>
 internal static class Logger
 {
-    private static readonly object Gate = new();
-    private const long MaxBytes = 1024 * 1024;
-
-    private static string LogPath
-    {
-        get
-        {
-            string dir = Path.GetDirectoryName(Environment.ProcessPath ?? Application.ExecutablePath)
-                         ?? Environment.CurrentDirectory;
-            return Path.Combine(dir, "tandemhdr.log");
-        }
-    }
-
-    public static void Log(string message)
-    {
-        try
-        {
-            lock (Gate)
-            {
-                string path = LogPath;
-                var info = new FileInfo(path);
-                if (info.Exists && info.Length > MaxBytes)
-                    File.Delete(path);
-
-                File.AppendAllText(path, $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] {message}{Environment.NewLine}");
-            }
-        }
-        catch
-        {
-            // Logging must never take down the app.
-        }
-    }
+    public static void Log(string message) =>
+        Debug.WriteLine($"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] {message}");
 }

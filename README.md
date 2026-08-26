@@ -5,6 +5,11 @@ right ICC display profile.
 
 Windows 11 greatly improves the HDR experience, but switching between SDR and HDR can often result in the incorrect ICC profile being applied, resulting in washed-out colours. Tandem HDR keeps the two in sync, including when HDR is changed externally.
 
+## Requirements
+
+Windows 11 x64 and the [.NET 10 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/10.0).
+Windows offers a download link on first run if it is not installed.
+
 ## Usage
 
 The tray icon will reflect if HDR is on or off, and left-clicking toggles HDR. Right-click opens the menu, with Settings and Quit.
@@ -16,11 +21,12 @@ Games will be detected from standard game launcher installs, or can be picked fr
 
 ## Configuration
 
-Configurations are stored in `config.json` beside the executable. See `config.example.json` for the shape.
+Everything is configured from the settings window; point the SDR and HDR profiles at your
+`.icc` / `.icm` files there.
 
-`sdrProfilePath` and `hdrProfilePath` should point at your `.icc` / `.icm` profiles.
-
-Log files are written out to `tandemhdr.log`.
+Settings are stored in the registry under `HKCU\Software\Tandem HDR`. The executable is
+self-contained in the literal sense — it writes no files beside itself, so it can be run
+from anywhere and removed by deleting it.
 
 ## Licence
 
