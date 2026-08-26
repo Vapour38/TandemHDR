@@ -14,7 +14,7 @@
     <PublishSingleFile>true</PublishSingleFile>
     <SelfContained>false</SelfContained>
     <DebugType>none</DebugType>
-    <Version>0.2.0</Version>
+    <Version>0.3.0</Version>
     <Product>Tandem HDR</Product>
     <Company>Lachlan Dennis</Company>
     <Copyright>Copyright (c) 2026 Lachlan Dennis</Copyright>
