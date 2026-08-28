@@ -1,4 +1,4 @@
-using System.Collections.ObjectModel;
+﻿using System.Collections.ObjectModel;
 using System.IO;
 using System.Windows;
 using System.Windows.Controls;
@@ -22,7 +22,6 @@ internal partial class SettingsWindow : Window
     private readonly IccProfileService _iccService;
     private readonly Func<HdrState> _getCurrentState;
     private readonly Func<string?> _getActiveProfileName;
-    private readonly Action _onIntervalsChanged;
     private readonly Action _onProfileChanged;
     private readonly Action _onProgramsChanged;
     private readonly Action _onRestartForUpdate;
@@ -46,7 +45,6 @@ internal partial class SettingsWindow : Window
         IccProfileService iccService,
         Func<HdrState> getCurrentState,
         Func<string?> getActiveProfileName,
-        Action onIntervalsChanged,
         Action onProfileChanged,
         Action onProgramsChanged,
         Action onRestartForUpdate)
@@ -57,7 +55,6 @@ internal partial class SettingsWindow : Window
         _iccService = iccService;
         _getCurrentState = getCurrentState;
         _getActiveProfileName = getActiveProfileName;
-        _onIntervalsChanged = onIntervalsChanged;
         _onProfileChanged = onProfileChanged;
         _onProgramsChanged = onProgramsChanged;
         _onRestartForUpdate = onRestartForUpdate;
@@ -67,7 +64,6 @@ internal partial class SettingsWindow : Window
         // have been assigned.
         ProfilesToggle.IsChecked = true;
         SystemToggle.IsChecked = true;
-        TimingToggle.IsChecked = true;
         UpdatesToggle.IsChecked = true;
 
         ProgramsList.ItemsSource = _programs;
@@ -179,8 +175,6 @@ internal partial class SettingsWindow : Window
         foreach (var path in _config.HdrPrograms)
             _programs.Add(new ProgramEntry(Path.GetFileNameWithoutExtension(path), path));
         UpdateProgramsEmptyState();
-        StateCheckStepper.Value = _config.HdrStateCheckIntervalSeconds;
-        ProfileRefreshStepper.Value = _config.ProfileRefreshIntervalSeconds;
     }
 
     private static string DisplayPath(string? path)
@@ -340,16 +334,6 @@ internal partial class SettingsWindow : Window
         ConfigManager.Save(_config);
     }
 
-    private void OnIntervalCommitted(object? sender, EventArgs e)
-    {
-        if (_initializing) return;
-
-        _config.HdrStateCheckIntervalSeconds = Math.Max(StateCheckStepper.Value, 1);
-        _config.ProfileRefreshIntervalSeconds = ProfileRefreshStepper.Value;
-        ConfigManager.Save(_config);
-        _onIntervalsChanged();
-    }
-
     private void OnMinimiseClick(object sender, RoutedEventArgs e)
         => WindowState = WindowState.Minimized;
 
@@ -432,9 +416,6 @@ internal partial class SettingsWindow : Window
 
     private void OnSystemToggled(object sender, RoutedEventArgs e)
         => SystemPanel.Visibility = Collapsed(SystemToggle);
-
-    private void OnTimingToggled(object sender, RoutedEventArgs e)
-        => TimingPanel.Visibility = Collapsed(TimingToggle);
 
     private void OnUpdatesToggled(object sender, RoutedEventArgs e)
         => UpdatesPanel.Visibility = Collapsed(UpdatesToggle);

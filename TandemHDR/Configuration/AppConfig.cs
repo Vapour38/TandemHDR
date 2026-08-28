@@ -1,11 +1,9 @@
-namespace TandemHdr.Configuration;
+﻿namespace TandemHdr.Configuration;
 
 internal class AppConfig
 {
     public string? SdrProfilePath { get; set; }
     public string? HdrProfilePath { get; set; }
-    public int ProfileRefreshIntervalSeconds { get; set; } = 60;
-    public int HdrStateCheckIntervalSeconds { get; set; } = 10;
     public bool SyncProfilesWithExternalHdrChanges { get; set; } = true;
     public bool StartWithWindows { get; set; } = true;
     public bool ShowNotifications { get; set; } = true;

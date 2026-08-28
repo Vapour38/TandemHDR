@@ -1,4 +1,4 @@
-using System.Drawing.Drawing2D;
+﻿using System.Drawing.Drawing2D;
 using System.Runtime.InteropServices;
 using TandemHdr.Configuration;
 using TandemHdr.Native;
@@ -11,6 +11,9 @@ internal class TandemHdrContext : ApplicationContext
 {
     private readonly NotifyIcon _trayIcon;
     private readonly NativeWindow _msgWindow;
+    private const int HdrStateCheckIntervalSeconds = 10;
+    private const int ProfileRefreshIntervalSeconds = 60;
+
     private readonly System.Windows.Forms.Timer _stateCheckTimer;
     private readonly System.Windows.Forms.Timer _profileRefreshTimer;
     private readonly GameWatcher _gameWatcher;
@@ -115,18 +118,17 @@ internal class TandemHdrContext : ApplicationContext
 
         _stateCheckTimer = new System.Windows.Forms.Timer
         {
-            Interval = _config.HdrStateCheckIntervalSeconds * 1000,
+            Interval = HdrStateCheckIntervalSeconds * 1000,
         };
         _stateCheckTimer.Tick += OnStateCheckTick;
         _stateCheckTimer.Start();
 
         _profileRefreshTimer = new System.Windows.Forms.Timer
         {
-            Interval = Math.Max(_config.ProfileRefreshIntervalSeconds, 1) * 1000,
+            Interval = ProfileRefreshIntervalSeconds * 1000,
         };
         _profileRefreshTimer.Tick += OnProfileRefreshTick;
-        if (_config.ProfileRefreshIntervalSeconds > 0)
-            _profileRefreshTimer.Start();
+        _profileRefreshTimer.Start();
 
         _gameWatcher = new GameWatcher();
         _gameWatcher.FirstStarted += OnWatchedProgramStarted;
@@ -248,22 +250,9 @@ internal class TandemHdrContext : ApplicationContext
         WpfHost.ShowSettings(_config, _displayService, _hdrService, _iccService,
             getCurrentState: () => _currentState,
             getActiveProfileName: () => _lastNotifiedProfile,
-            onIntervalsChanged: OnSettingsIntervalsChanged,
             onProfileChanged: OnSettingsProfileChanged,
             onProgramsChanged: ApplyWatchListFromConfig,
             onRestartForUpdate: RestartForUpdate);
-    }
-
-    /// <summary>Live-applies interval edits made in the settings window to the already-running timers.</summary>
-    private void OnSettingsIntervalsChanged()
-    {
-        _stateCheckTimer.Interval = _config.HdrStateCheckIntervalSeconds * 1000;
-
-        _profileRefreshTimer.Interval = Math.Max(_config.ProfileRefreshIntervalSeconds, 1) * 1000;
-        if (_config.ProfileRefreshIntervalSeconds > 0)
-            _profileRefreshTimer.Start();
-        else
-            _profileRefreshTimer.Stop();
     }
 
     /// <summary>Re-applies the profile for the current state after a profile path edit in the settings window.</summary>

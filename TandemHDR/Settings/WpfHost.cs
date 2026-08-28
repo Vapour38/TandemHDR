@@ -1,4 +1,4 @@
-using System.Windows.Media;
+﻿using System.Windows.Media;
 using TandemHdr.Configuration;
 using TandemHdr.Native;
 using TandemHdr.Services;
@@ -27,7 +27,6 @@ internal static class WpfHost
         IccProfileService iccService,
         Func<HdrState> getCurrentState,
         Func<string?> getActiveProfileName,
-        Action onIntervalsChanged,
         Action onProfileChanged,
         Action onProgramsChanged,
         Action onRestartForUpdate)
@@ -41,7 +40,7 @@ internal static class WpfHost
         }
 
         _window = new SettingsWindow(config, displayService, hdrService, iccService,
-            getCurrentState, getActiveProfileName, onIntervalsChanged, onProfileChanged,
+            getCurrentState, getActiveProfileName, onProfileChanged,
             onProgramsChanged, onRestartForUpdate);
         _window.Closed += (_, _) => _window = null;
         _window.Show();
