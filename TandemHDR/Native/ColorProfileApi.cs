@@ -47,6 +47,22 @@ internal static class ColorProfileApi
         [MarshalAs(UnmanagedType.LPWStr)] string? pMachineName,
         [MarshalAs(UnmanagedType.LPWStr)] string pProfileName);
 
+    /// <summary>Removes a profile from the system colour directory, deleting the file too.
+    /// Fails while the profile is still associated with a device, so callers dissociate first.</summary>
+    [DllImport("mscms.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static extern bool UninstallColorProfileW(
+        [MarshalAs(UnmanagedType.LPWStr)] string? pMachineName,
+        [MarshalAs(UnmanagedType.LPWStr)] string pProfileName,
+        [MarshalAs(UnmanagedType.Bool)] bool bDelete);
+
+    [DllImport("mscms.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static extern bool DisassociateColorProfileFromDeviceW(
+        [MarshalAs(UnmanagedType.LPWStr)] string? pMachineName,
+        [MarshalAs(UnmanagedType.LPWStr)] string pProfileName,
+        [MarshalAs(UnmanagedType.LPWStr)] string pDeviceName);
+
     [DllImport("mscms.dll", CharSet = CharSet.Unicode, SetLastError = true)]
     [return: MarshalAs(UnmanagedType.Bool)]
     public static extern bool AssociateColorProfileWithDeviceW(

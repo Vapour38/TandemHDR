@@ -39,6 +39,17 @@
     <SolidColorBrush x:Key="WarningDotBrush" Color="#C77E00" />
     <SolidColorBrush x:Key="NeutralDotBrush" Color="#7C8B99" />
 
+    <!-- Destructive action. Muted until hovered, so the button does not shout from a
+         collapsed section the user is only scrolling past. -->
+    <SolidColorBrush x:Key="DangerForegroundBrush" Color="#8A2318" />
+    <SolidColorBrush x:Key="DangerBackgroundBrush" Color="#D9F2C9C4" />
+    <SolidColorBrush x:Key="DangerHoverBrush" Color="#F2E8AEA6" />
+    <SolidColorBrush x:Key="DangerPressedBrush" Color="#F2D9968C" />
+
+    <!-- Dropdown list: opaque, because a popup floats outside the window's backdrop and
+         would otherwise show the desktop through it. -->
+    <SolidColorBrush x:Key="PopupBackgroundBrush" Color="#F4F7FA" />
+
     <SolidColorBrush x:Key="AccentForegroundBrush" Color="#FFFFFF" />
 
 </ResourceDictionary>

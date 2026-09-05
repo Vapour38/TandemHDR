@@ -21,6 +21,61 @@ internal class IccProfileService(DisplayService displayService)
         return File.Exists(profilePath) || File.Exists(Path.Combine(SystemColorDir, Path.GetFileName(profilePath)));
     }
 
+    /// <summary>Every profile in the system colour directory, by file name. Backs the
+    /// settings window's profile pickers, so a user who has already installed a profile
+    /// through Windows does not have to go find the original file.</summary>
+    public static List<string> ListInstalledProfiles()
+    {
+        try
+        {
+            if (!Directory.Exists(SystemColorDir))
+                return [];
+
+            return Directory.EnumerateFiles(SystemColorDir)
+                .Where(f => f.EndsWith(".icc", StringComparison.OrdinalIgnoreCase)
+                         || f.EndsWith(".icm", StringComparison.OrdinalIgnoreCase))
+                .Select(Path.GetFileName)
+                .Select(n => n!)
+                .OrderBy(n => n, StringComparer.CurrentCultureIgnoreCase)
+                .ToList();
+        }
+        catch (Exception ex)
+        {
+            Logger.Log($"Could not list installed profiles: {ex.Message}");
+            return [];
+        }
+    }
+
+    /// <summary>
+    /// Takes a profile back out of the system colour directory. Windows refuses to
+    /// uninstall a profile that is still associated with a display, so the association is
+    /// dropped first — for every display, since the profile may have been applied to more
+    /// than one over time. Returns false if the profile is still there afterwards.
+    /// </summary>
+    public bool UninstallProfile(string profilePath)
+    {
+        string fileName = Path.GetFileName(profilePath);
+        if (string.IsNullOrEmpty(fileName) || !File.Exists(Path.Combine(SystemColorDir, fileName)))
+            return true;
+
+        foreach (var display in displayService.EnumerateDisplays())
+        {
+            if (string.IsNullOrEmpty(display.MonitorDevicePath))
+                continue;
+
+            ColorProfileApi.DisassociateColorProfileFromDeviceW(null, fileName, display.MonitorDevicePath);
+        }
+
+        if (!ColorProfileApi.UninstallColorProfileW(null, fileName, bDelete: true))
+        {
+            Logger.Log($"UninstallColorProfileW failed for '{fileName}': error {Marshal.GetLastWin32Error()}");
+            return !File.Exists(Path.Combine(SystemColorDir, fileName));
+        }
+
+        Logger.Log($"Uninstalled profile '{fileName}'");
+        return true;
+    }
+
     /// <summary>
     /// Applies the ICC profile for the given HDR state.
     /// Returns the profile filename that was applied, or null if none.

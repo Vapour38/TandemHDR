@@ -14,6 +14,9 @@ internal class TandemHdrContext : ApplicationContext
     private const int HdrStateCheckIntervalSeconds = 10;
     private const int ProfileRefreshIntervalSeconds = 60;
 
+    /// <summary>The longest string NotifyIcon.Text accepts before it throws.</summary>
+    private const int MaxTooltip = 63;
+
     private readonly System.Windows.Forms.Timer _stateCheckTimer;
     private readonly System.Windows.Forms.Timer _profileRefreshTimer;
     private readonly GameWatcher _gameWatcher;
@@ -64,6 +67,8 @@ internal class TandemHdrContext : ApplicationContext
     private const uint MF_SEPARATOR = 0x0800;
     private const uint MF_CHECKED = 0x0008;
     private const uint MF_UNCHECKED = 0x0000;
+    private const uint MF_GRAYED = 0x0001;
+    private const uint MF_DISABLED = 0x0002;
     private const uint TPM_RETURNCMD = 0x0100;
     private const uint TPM_RIGHTBUTTON = 0x0002;
     private const uint TPM_LEFTALIGN = 0x0000;
@@ -154,9 +159,18 @@ internal class TandemHdrContext : ApplicationContext
     private async Task CheckForUpdatesOnStart()
     {
         var result = await UpdateService.CheckAsync();
-        if (result.Status == UpdateStatus.Available)
-            _trayIcon.ShowBalloonTip(5000, AppName,
-                $"Version {result.LatestVersion} is available. Open settings to install it.", ToolTipIcon.Info);
+        if (result.Status != UpdateStatus.Available)
+            return;
+
+        // A skipped version stays visible in the settings window; it just stops nagging.
+        if (result.LatestVersion?.ToString() == _config.SkippedVersion)
+        {
+            Logger.Log($"v{result.LatestVersion} is available but was skipped");
+            return;
+        }
+
+        _trayIcon.ShowBalloonTip(5000, AppName,
+            $"Version {result.LatestVersion} is available. Open settings to install it.", ToolTipIcon.Info);
     }
 
     /// <summary>Swaps in the downloaded exe and hands over to it. Called from the settings
@@ -199,6 +213,13 @@ internal class TandemHdrContext : ApplicationContext
 
         try
         {
+            // Which profile is actually live, as a caption above the toggle. Greyed rather
+            // than omitted when nothing is applied: the whole point of the app is that the
+            // profile follows HDR, so "no profile" is worth seeing.
+            AppendMenuW(menu, MF_STRING | MF_DISABLED | MF_GRAYED, 0,
+                _lastNotifiedProfile is { } profile ? $"Profile: {profile}" : "No profile applied");
+            AppendMenuW(menu, MF_SEPARATOR, 0, null);
+
             // "Enable HDR" — checked when HDR is on
             uint hdrFlags = MF_STRING | (_currentState == HdrState.On ? MF_CHECKED : MF_UNCHECKED);
             AppendMenuW(menu, hdrFlags, IDM_ENABLE_HDR, "Enable HDR");
@@ -252,7 +273,8 @@ internal class TandemHdrContext : ApplicationContext
             getActiveProfileName: () => _lastNotifiedProfile,
             onProfileChanged: OnSettingsProfileChanged,
             onProgramsChanged: ApplyWatchListFromConfig,
-            onRestartForUpdate: RestartForUpdate);
+            onRestartForUpdate: RestartForUpdate,
+            onDataRemoved: Quit);
     }
 
     /// <summary>Re-applies the profile for the current state after a profile path edit in the settings window.</summary>
@@ -380,6 +402,7 @@ internal class TandemHdrContext : ApplicationContext
             return;
 
         _lastNotifiedProfile = profileName;
+        UpdateTrayText();
         if (!_config.ShowNotifications) return;
 
         string mode = state == HdrState.On ? "HDR" : "SDR";
@@ -388,14 +411,36 @@ internal class TandemHdrContext : ApplicationContext
 
     private void UpdateTrayState()
     {
-        _trayIcon.Text = _currentState switch
+        UpdateTrayText();
+        _trayIcon.Icon = CreateIcon(_currentState);
+    }
+
+    /// <summary>Separate from <see cref="UpdateTrayState"/> so a profile change can refresh
+    /// the tooltip without rebuilding the icon, which is the expensive half.</summary>
+    private void UpdateTrayText()
+    {
+        string state = _currentState switch
         {
             HdrState.On => "HDR is on\nClick to turn off HDR",
             HdrState.Off => "HDR is off\nClick to turn on HDR",
             _ => "HDR is unsupported",
         };
 
-        _trayIcon.Icon = CreateIcon(_currentState);
+        _trayIcon.Text = _lastNotifiedProfile is { } profile
+            ? state + "\nProfile: " + Fit(profile, MaxTooltip - state.Length - "\nProfile: ".Length)
+            : state;
+    }
+
+    /// <summary>Profile names routinely run longer than the budget the state lines leave.
+    /// Trimming the middle keeps both the display name a profile starts with and the
+    /// extension it ends with.</summary>
+    private static string Fit(string value, int budget)
+    {
+        if (value.Length <= budget)
+            return value;
+
+        int lead = (budget - 1) / 2;
+        return value[..lead] + "…" + value[^(budget - 1 - lead)..];
     }
 
     private static Icon CreateIcon(HdrState state)

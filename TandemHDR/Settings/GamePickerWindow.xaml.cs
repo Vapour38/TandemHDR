@@ -181,4 +181,25 @@ internal partial class GamePickerWindow : Window
     }
 
     private void OnCancelClick(object sender, RoutedEventArgs e) => DialogResult = false;
+
+    /// <summary>Escape cancels and Enter adds, so the search box does not have to be left
+    /// before the dialog can be dismissed. Enter is ignored with nothing ticked, matching
+    /// the disabled Add button.</summary>
+    protected override void OnKeyDown(System.Windows.Input.KeyEventArgs e)
+    {
+        switch (e.Key)
+        {
+            case System.Windows.Input.Key.Escape:
+                DialogResult = false;
+                e.Handled = true;
+                return;
+
+            case System.Windows.Input.Key.Enter when AddButton.IsEnabled:
+                OnAddClick(this, new RoutedEventArgs());
+                e.Handled = true;
+                return;
+        }
+
+        base.OnKeyDown(e);
+    }
 }

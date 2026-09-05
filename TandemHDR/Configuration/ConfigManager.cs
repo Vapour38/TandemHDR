@@ -57,6 +57,22 @@ internal static class ConfigManager
         }
     }
 
+    /// <summary>Removes the key the settings live in. Only the remove-data flow calls this:
+    /// <see cref="Save"/> recreates the key on the next change, so the app has to be on its
+    /// way out for the deletion to stick.</summary>
+    public static void Delete()
+    {
+        try
+        {
+            Registry.CurrentUser.DeleteSubKeyTree(RegistryKey, throwOnMissingSubKey: false);
+            Logger.Log("Removed the settings key");
+        }
+        catch (Exception ex)
+        {
+            Logger.Log($"Failed to remove the settings key: {ex.Message}");
+        }
+    }
+
     /// <summary>Picks up the config.json that older versions kept beside the exe, so an
     /// update does not silently reset a working setup. The file is left in place; the
     /// registry copy is authoritative from here on.</summary>

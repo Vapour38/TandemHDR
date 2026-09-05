@@ -2,6 +2,7 @@
 using System.IO;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
@@ -12,6 +13,9 @@ using TandemHdr.Services;
 using Microsoft.Win32;
 // WinForms and WPF are both enabled in this project and share several type names.
 using Brush = System.Windows.Media.Brush;
+using ComboBox = System.Windows.Controls.ComboBox;
+using KeyEventArgs = System.Windows.Input.KeyEventArgs;
+using MessageBox = System.Windows.MessageBox;
 using OpenFileDialog = Microsoft.Win32.OpenFileDialog;
 
 namespace TandemHdr.Settings;
@@ -25,9 +29,14 @@ internal partial class SettingsWindow : Window
     private readonly Action _onProfileChanged;
     private readonly Action _onProgramsChanged;
     private readonly Action _onRestartForUpdate;
+    private readonly Action _onDataRemoved;
     private readonly DispatcherTimer _statusTimer;
 
     private bool _initializing = true;
+
+    /// <summary>Set while the profile dropdowns are being filled, so populating them does
+    /// not read back as the user choosing something.</summary>
+    private bool _populatingProfiles;
 
     /// <summary>What the Updates section is currently showing, and what its button acts on.</summary>
     private UpdateCheck _update = UpdateService.Last;
@@ -38,6 +47,15 @@ internal partial class SettingsWindow : Window
     /// subtitle and the identity used to remove the entry.</summary>
     internal record ProgramEntry(string Name, string Path);
 
+    /// <summary>One entry in a profile dropdown. Display is the file name, which is what the
+    /// profile is applied by; Path is null only for the "not set" entry.</summary>
+    internal sealed record ProfileOption(string Display, string? Path)
+    {
+        public override string ToString() => Display;
+    }
+
+    private static readonly ProfileOption NotSet = new("Not set", null);
+
     public SettingsWindow(
         AppConfig config,
         DisplayService displayService,
@@ -47,7 +65,8 @@ internal partial class SettingsWindow : Window
         Func<string?> getActiveProfileName,
         Action onProfileChanged,
         Action onProgramsChanged,
-        Action onRestartForUpdate)
+        Action onRestartForUpdate,
+        Action onDataRemoved)
     {
         InitializeComponent();
 
@@ -58,6 +77,7 @@ internal partial class SettingsWindow : Window
         _onProfileChanged = onProfileChanged;
         _onProgramsChanged = onProgramsChanged;
         _onRestartForUpdate = onRestartForUpdate;
+        _onDataRemoved = onDataRemoved;
 
         // Set after InitializeComponent, not via IsChecked="True" in XAML: the Checked event
         // fires while BAML is still building the tree, before the panel fields it touches
@@ -155,10 +175,10 @@ internal partial class SettingsWindow : Window
 
     private void LoadFromConfig()
     {
-        SdrPathText.Text = DisplayPath(_config.SdrProfilePath);
-        HdrPathText.Text = DisplayPath(_config.HdrProfilePath);
+        PopulateProfileCombos();
         UpdateProfileWarning(SdrWarningText, _config.SdrProfilePath);
         UpdateProfileWarning(HdrWarningText, _config.HdrProfilePath);
+        UpdateSetupBanner();
 
         AutoStartCheck.IsChecked = AutoStartService.IsEnabled();
         SyncExternalCheck.IsChecked = _config.SyncProfilesWithExternalHdrChanges;
@@ -177,8 +197,57 @@ internal partial class SettingsWindow : Window
         UpdateProgramsEmptyState();
     }
 
-    private static string DisplayPath(string? path)
-        => string.IsNullOrWhiteSpace(path) ? "Not set" : Path.GetFileName(path);
+    /// <summary>Fills both dropdowns from the profiles Windows already has installed, which
+    /// is where a calibrated profile normally ends up — so the common case needs no file
+    /// browsing at all. The folder also holds printer and generic profiles; there is no
+    /// reliable way to tell display profiles apart, so all of them are listed.</summary>
+    private void PopulateProfileCombos()
+    {
+        var installed = IccProfileService.ListInstalledProfiles();
+
+        _populatingProfiles = true;
+        Fill(SdrProfileCombo, _config.SdrProfilePath);
+        Fill(HdrProfileCombo, _config.HdrProfilePath);
+        _populatingProfiles = false;
+
+        void Fill(ComboBox combo, string? configured)
+        {
+            var options = new List<ProfileOption> { NotSet };
+            options.AddRange(installed.Select(n =>
+                new ProfileOption(n, Path.Combine(IccProfileService.SystemColorDir, n))));
+
+            // A profile picked but never yet applied is not in the system directory, so it
+            // would otherwise be missing from its own dropdown.
+            string? name = string.IsNullOrWhiteSpace(configured) ? null : Path.GetFileName(configured);
+            if (name != null && !options.Any(o => Same(o.Display, name)))
+                options.Insert(1, new ProfileOption(name, configured));
+
+            combo.ItemsSource = options;
+            combo.SelectedItem = options.FirstOrDefault(o => name != null && Same(o.Display, name)) ?? NotSet;
+        }
+    }
+
+    private static bool Same(string? a, string? b)
+        => string.Equals(a, b, StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>The app looks broken with no profiles set — it toggles HDR and nothing
+    /// visibly follows — so say so until both are chosen.</summary>
+    private void UpdateSetupBanner()
+    {
+        bool sdr = !string.IsNullOrWhiteSpace(_config.SdrProfilePath);
+        bool hdr = !string.IsNullOrWhiteSpace(_config.HdrProfilePath);
+
+        SetupBanner.Visibility = sdr && hdr ? Visibility.Collapsed : Visibility.Visible;
+        SetupBannerText.Text = (sdr, hdr) switch
+        {
+            (false, false) => "Choose an SDR and an HDR colour profile below. Until both are set, "
+                            + "Tandem HDR switches HDR without changing your colour profile.",
+            (true, false) => "Choose an HDR colour profile below. Until you do, turning HDR on "
+                           + "leaves your SDR profile in place.",
+            _ => "Choose an SDR colour profile below. Until you do, turning HDR off "
+               + "leaves your HDR profile in place.",
+        };
+    }
 
     private void UpdateProfileWarning(System.Windows.Controls.TextBlock warningText, string? path)
     {
@@ -210,6 +279,29 @@ internal partial class SettingsWindow : Window
         StatusDetailText.Text = active != null ? $"· Applied ‘{active}’" : string.Empty;
     }
 
+    private void OnSdrProfileSelected(object sender, SelectionChangedEventArgs e)
+        => ProfileSelected(isSdr: true);
+
+    private void OnHdrProfileSelected(object sender, SelectionChangedEventArgs e)
+        => ProfileSelected(isSdr: false);
+
+    private void ProfileSelected(bool isSdr)
+    {
+        if (_initializing || _populatingProfiles) return;
+
+        var combo = isSdr ? SdrProfileCombo : HdrProfileCombo;
+        if (combo.SelectedItem is not ProfileOption option) return;
+
+        // Re-picking the profile already configured, just by its installed copy rather than
+        // the file it was chosen from, is not a change: rewriting the path would only lose
+        // track of the original.
+        string? current = isSdr ? _config.SdrProfilePath : _config.HdrProfilePath;
+        if (option.Path != null && current != null && Same(Path.GetFileName(current), option.Display))
+            return;
+
+        SetProfile(isSdr, option.Path);
+    }
+
     private void OnSdrBrowseClick(object sender, RoutedEventArgs e)
         => BrowseForProfile(isSdr: true);
 
@@ -229,20 +321,24 @@ internal partial class SettingsWindow : Window
         if (dialog.ShowDialog(this) != true)
             return;
 
-        if (isSdr)
-        {
-            _config.SdrProfilePath = dialog.FileName;
-            SdrPathText.Text = DisplayPath(dialog.FileName);
-            UpdateProfileWarning(SdrWarningText, dialog.FileName);
-        }
-        else
-        {
-            _config.HdrProfilePath = dialog.FileName;
-            HdrPathText.Text = DisplayPath(dialog.FileName);
-            UpdateProfileWarning(HdrWarningText, dialog.FileName);
-        }
+        SetProfile(isSdr, dialog.FileName);
 
+        // Applying it installs it into the system directory, so rebuild the lists after.
+        PopulateProfileCombos();
+    }
+
+    /// <summary>The one place a profile path changes: saves it, re-applies it and brings the
+    /// warning, banner and status readout along.</summary>
+    private void SetProfile(bool isSdr, string? path)
+    {
+        if (isSdr)
+            _config.SdrProfilePath = path;
+        else
+            _config.HdrProfilePath = path;
+
+        UpdateProfileWarning(isSdr ? SdrWarningText : HdrWarningText, path);
         ConfigManager.Save(_config);
+        UpdateSetupBanner();
         _onProfileChanged();
         RefreshStatus();
     }
@@ -306,14 +402,27 @@ internal partial class SettingsWindow : Window
         RenderUpdateState();
     }
 
+    /// <summary>Marks the offered version as one not to be reminded about. It stays visible
+    /// and installable here — skipping only silences the balloon at start-up.</summary>
+    private void OnSkipVersionClick(object sender, RoutedEventArgs e)
+    {
+        _config.SkippedVersion = _update.LatestVersion?.ToString();
+        ConfigManager.Save(_config);
+        RenderUpdateState();
+    }
+
     private void RenderUpdateState()
     {
         var current = UpdateService.CurrentVersion;
+        bool available = _update.Status == UpdateStatus.Available;
+        bool skipped = available && _update.LatestVersion?.ToString() == _config.SkippedVersion;
+
         var (status, detail, action) = _update.Status switch
         {
             UpdateStatus.UpToDate => ($"Up to date (v{current})", null, "Check now"),
             UpdateStatus.Available => ($"Version {_update.LatestVersion} is available",
-                                       $"You have v{current}.", "Download and install"),
+                                       skipped ? $"You have v{current}. You chose to skip this version."
+                                               : $"You have v{current}.", "Download and install"),
             UpdateStatus.Ready => ("Update ready to install",
                                    "Tandem HDR will restart to finish updating.", "Restart now"),
             UpdateStatus.Failed => ("Could not check for updates", _update.Error, "Try again"),
@@ -324,6 +433,77 @@ internal partial class SettingsWindow : Window
         UpdateDetailText.Text = detail ?? string.Empty;
         UpdateDetailText.Visibility = detail == null ? Visibility.Collapsed : Visibility.Visible;
         UpdateActionButton.Content = action;
+
+        SkipVersionButton.Visibility = available && !skipped ? Visibility.Visible : Visibility.Collapsed;
+
+        // Kept up through Ready: what changed is still worth reading between downloading the
+        // update and restarting for it.
+        bool showNotes = (available || _update.Status == UpdateStatus.Ready)
+                         && !string.IsNullOrWhiteSpace(_update.Notes);
+        UpdateNotesText.Text = _update.Notes ?? string.Empty;
+        UpdateNotesPanel.Visibility = showNotes ? Visibility.Visible : Visibility.Collapsed;
+    }
+
+    /// <summary>Takes back everything the app has put outside its own folder, then hands over
+    /// to the tray to close: leaving it running would let the next settings change write the
+    /// registry key straight back.</summary>
+    private void OnRemoveDataClick(object sender, RoutedEventArgs e)
+    {
+        var confirm = MessageBox.Show(this,
+            "This removes Tandem HDR's settings, its start-up entry and its Start Menu "
+            + "shortcut, then closes the app.\n\n"
+            + "The program itself is not deleted — delete TandemHDR.exe yourself afterwards.",
+            "Remove Tandem HDR", MessageBoxButton.OKCancel, MessageBoxImage.Warning);
+
+        if (confirm != MessageBoxResult.OK) return;
+
+        // Asked separately: the colour directory is shared with Windows and every other
+        // colour-managed app, so a profile there may well still be wanted.
+        var installed = new[] { _config.SdrProfilePath, _config.HdrProfilePath }
+            .Where(p => !string.IsNullOrWhiteSpace(p))
+            .Select(p => Path.GetFileName(p)!)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .Where(n => File.Exists(Path.Combine(IccProfileService.SystemColorDir, n)))
+            .ToList();
+
+        if (installed.Count > 0)
+        {
+            var alsoProfiles = MessageBox.Show(this,
+                "Also remove the colour profiles Tandem HDR installed into Windows?\n\n"
+                + string.Join("\n", installed)
+                + "\n\nChoose No if you still want them available in Windows' colour settings.",
+                "Remove colour profiles", MessageBoxButton.YesNo, MessageBoxImage.Question);
+
+            if (alsoProfiles == MessageBoxResult.Yes)
+            {
+                foreach (string name in installed)
+                {
+                    if (!_iccService.UninstallProfile(name))
+                        Logger.Log($"Could not remove '{name}' from the colour directory");
+                }
+            }
+        }
+
+        AutoStartService.SetEnabled(false);
+        ShortcutHelper.RemoveShortcut();
+        ConfigManager.Delete();
+
+        Close();
+        _onDataRemoved();
+    }
+
+    /// <summary>Escape closes the window. Not handled when a dropdown has it first — the
+    /// ComboBox marks the key handled to close its popup, which stops this from running.</summary>
+    protected override void OnKeyDown(KeyEventArgs e)
+    {
+        if (e.Key == Key.Escape)
+        {
+            Close();
+            e.Handled = true;
+            return;
+        }
+
+        base.OnKeyDown(e);
     }
 
     private void OnNotificationsToggled(object sender, RoutedEventArgs e)

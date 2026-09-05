@@ -20,7 +20,8 @@ internal enum UpdateStatus
 }
 
 internal record UpdateCheck(UpdateStatus Status, Version? LatestVersion = null,
-    string? DownloadUrl = null, string? Sha256 = null, string? Error = null);
+    string? DownloadUrl = null, string? Sha256 = null, string? Error = null,
+    string? Notes = null);
 
 /// <summary>
 /// Self-update against the project's GitHub releases: there is no update server, the
@@ -132,7 +133,8 @@ internal static class UpdateService
                 return Fail($"Release v{latest} publishes no SHA-256 to verify against");
 
             Logger.Log($"Update available: v{latest} (running v{CurrentVersion})");
-            return Record(new UpdateCheck(UpdateStatus.Available, latest, url, match.Groups[1].Value.ToLowerInvariant()));
+            return Record(new UpdateCheck(UpdateStatus.Available, latest, url,
+                match.Groups[1].Value.ToLowerInvariant(), Notes: CleanNotes(body)));
         }
         catch (Exception ex)
         {
@@ -228,6 +230,36 @@ internal static class UpdateService
             WorkingDirectory = ExeDir,
         });
         return true;
+    }
+
+    /// <summary>Turns the release body into something worth reading in the settings window.
+    /// The checksum block the body carries for <see cref="CheckAsync"/> is machine-facing, so
+    /// it is dropped along with the markdown heading markers the notes are written in.</summary>
+    private static string? CleanNotes(string body)
+    {
+        if (string.IsNullOrWhiteSpace(body))
+            return null;
+
+        var kept = new List<string>();
+        foreach (string raw in body.ReplaceLineEndings("\n").Split('\n'))
+        {
+            string line = raw.TrimEnd();
+
+            // Drop the checksum, whether it sits on the labelled line or one of its own.
+            if (Regex.IsMatch(line, @"SHA-?256", RegexOptions.IgnoreCase) ||
+                Regex.IsMatch(line, @"\b[0-9a-fA-F]{64}\b"))
+                continue;
+
+            // Leading '#' and '*' read as noise once the markdown is not being rendered.
+            line = Regex.Replace(line, @"^\s{0,3}#{1,6}\s*", string.Empty);
+            line = Regex.Replace(line, @"^(\s*)[*+]\s+", "$1• ");
+            kept.Add(line);
+        }
+
+        string notes = string.Join('\n', kept).Trim('\n', ' ');
+        // Collapse the blank runs left behind by the dropped lines.
+        notes = Regex.Replace(notes, @"\n{3,}", "\n\n");
+        return notes.Length == 0 ? null : notes;
     }
 
     private static UpdateCheck Fail(string error)

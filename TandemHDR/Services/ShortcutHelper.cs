@@ -46,6 +46,24 @@ internal static class ShortcutHelper
         }
     }
 
+    /// <summary>Deletes the Start Menu shortcut created for the toast App User Model ID.
+    /// Part of the remove-data flow; the next launch would recreate it.</summary>
+    public static void RemoveShortcut()
+    {
+        try
+        {
+            string path = GetShortcutPath();
+            if (!File.Exists(path)) return;
+
+            File.Delete(path);
+            Logger.Log("Removed the Start Menu shortcut");
+        }
+        catch (Exception ex)
+        {
+            Logger.Log($"Failed to remove the Start Menu shortcut: {ex.Message}");
+        }
+    }
+
     private static string GetShortcutPath()
     {
         string startMenu = Path.Combine(
