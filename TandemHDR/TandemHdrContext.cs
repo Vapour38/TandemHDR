@@ -14,9 +14,6 @@ internal class TandemHdrContext : ApplicationContext
     private const int HdrStateCheckIntervalSeconds = 10;
     private const int ProfileRefreshIntervalSeconds = 60;
 
-    /// <summary>The longest string NotifyIcon.Text accepts before it throws.</summary>
-    private const int MaxTooltip = 63;
-
     private readonly System.Windows.Forms.Timer _stateCheckTimer;
     private readonly System.Windows.Forms.Timer _profileRefreshTimer;
     private readonly GameWatcher _gameWatcher;
@@ -402,7 +399,6 @@ internal class TandemHdrContext : ApplicationContext
             return;
 
         _lastNotifiedProfile = profileName;
-        UpdateTrayText();
         if (!_config.ShowNotifications) return;
 
         string mode = state == HdrState.On ? "HDR" : "SDR";
@@ -411,36 +407,13 @@ internal class TandemHdrContext : ApplicationContext
 
     private void UpdateTrayState()
     {
-        UpdateTrayText();
-        _trayIcon.Icon = CreateIcon(_currentState);
-    }
-
-    /// <summary>Separate from <see cref="UpdateTrayState"/> so a profile change can refresh
-    /// the tooltip without rebuilding the icon, which is the expensive half.</summary>
-    private void UpdateTrayText()
-    {
-        string state = _currentState switch
+        _trayIcon.Text = _currentState switch
         {
             HdrState.On => "HDR is on\nClick to turn off HDR",
             HdrState.Off => "HDR is off\nClick to turn on HDR",
             _ => "HDR is unsupported",
         };
-
-        _trayIcon.Text = _lastNotifiedProfile is { } profile
-            ? state + "\nProfile: " + Fit(profile, MaxTooltip - state.Length - "\nProfile: ".Length)
-            : state;
-    }
-
-    /// <summary>Profile names routinely run longer than the budget the state lines leave.
-    /// Trimming the middle keeps both the display name a profile starts with and the
-    /// extension it ends with.</summary>
-    private static string Fit(string value, int budget)
-    {
-        if (value.Length <= budget)
-            return value;
-
-        int lead = (budget - 1) / 2;
-        return value[..lead] + "…" + value[^(budget - 1 - lead)..];
+        _trayIcon.Icon = CreateIcon(_currentState);
     }
 
     private static Icon CreateIcon(HdrState state)

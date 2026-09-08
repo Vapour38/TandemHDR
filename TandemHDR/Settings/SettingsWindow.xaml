@@ -5,6 +5,7 @@
         xmlns:controls="clr-namespace:TandemHdr.Controls"
         x:ClassModifier="internal"
         Title="Tandem HDR"
+        Icon="pack://application:,,,/app.ico"
         Width="1100" Height="780"
         MinWidth="720" MinHeight="480"
         WindowStyle="None"

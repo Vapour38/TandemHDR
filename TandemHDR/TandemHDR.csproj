@@ -14,11 +14,17 @@
     <PublishSingleFile>true</PublishSingleFile>
     <SelfContained>false</SelfContained>
     <DebugType>none</DebugType>
-    <Version>0.4.0</Version>
+    <Version>0.5.0</Version>
     <Product>Tandem HDR</Product>
     <Company>Lachlan Dennis</Company>
     <Copyright>Copyright (c) 2026 Lachlan Dennis</Copyright>
     <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
+    <ApplicationIcon>app.ico</ApplicationIcon>
   </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Also embedded as a WPF resource so Window.Icon can point at the same file. -->
+    <Resource Include="app.ico" />
+  </ItemGroup>
 
 </Project>
