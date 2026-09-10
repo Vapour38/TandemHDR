@@ -1,4 +1,4 @@
-using System.IO;
+﻿using System.IO;
 using System.IO.Compression;
 using System.Net.Http;
 using System.Reflection;
@@ -109,13 +109,17 @@ internal static class UpdateService
                 return Record(new UpdateCheck(UpdateStatus.UpToDate, latest));
             }
 
-            string? url = null;
+            string? url = null, digest = null;
             foreach (var asset in root.GetProperty("assets").EnumerateArray())
             {
                 string name = asset.GetProperty("name").GetString() ?? string.Empty;
                 if (name.EndsWith(".zip", StringComparison.OrdinalIgnoreCase))
                 {
                     url = asset.GetProperty("browser_download_url").GetString();
+                    // GitHub hashes the asset itself and reports it as "sha256:<hex>".
+                    if (asset.TryGetProperty("digest", out var d) && d.GetString() is { } published
+                        && published.StartsWith("sha256:", StringComparison.OrdinalIgnoreCase))
+                        digest = published["sha256:".Length..];
                     break;
                 }
             }
@@ -123,18 +127,26 @@ internal static class UpdateService
             if (url == null)
                 return Fail($"Release v{latest} has no zip to download");
 
-            // The release notes carry the zip's hash; without it there is nothing to check
-            // the download against, so the update is not offered.
             string body = root.TryGetProperty("body", out var b) ? b.GetString() ?? string.Empty : string.Empty;
-            // Lazy and generously bounded: the hash trails the "SHA-256" label after
-            // whatever punctuation and file name the notes happen to put in between.
-            var match = Regex.Match(body, @"SHA-?256[\s\S]{0,120}?([0-9a-fA-F]{64})", RegexOptions.IgnoreCase);
-            if (!match.Success)
-                return Fail($"Release v{latest} publishes no SHA-256 to verify against");
+
+            // Without a hash there is nothing to check the download against, so the update is
+            // not offered. GitHub's own digest is preferred: it covers the file that is really
+            // there, rather than a number the release notes had to state correctly. Releases
+            // up to v0.5.1 carry the hash only in their notes, which is why both are read.
+            string? sha = digest;
+            if (sha == null)
+            {
+                // Lazy and generously bounded: the hash trails the "SHA-256" label after
+                // whatever punctuation and file name the notes happen to put in between.
+                var match = Regex.Match(body, @"SHA-?256[\s\S]{0,120}?([0-9a-fA-F]{64})", RegexOptions.IgnoreCase);
+                if (!match.Success)
+                    return Fail($"Release v{latest} publishes no SHA-256 to verify against");
+                sha = match.Groups[1].Value;
+            }
 
             Logger.Log($"Update available: v{latest} (running v{CurrentVersion})");
             return Record(new UpdateCheck(UpdateStatus.Available, latest, url,
-                match.Groups[1].Value.ToLowerInvariant(), Notes: CleanNotes(body)));
+                sha.ToLowerInvariant(), Notes: CleanNotes(body)));
         }
         catch (Exception ex)
         {
