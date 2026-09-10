@@ -402,7 +402,13 @@ internal class TandemHdrContext : ApplicationContext
         if (!_config.ShowNotifications) return;
 
         string mode = state == HdrState.On ? "HDR" : "SDR";
-        _trayIcon.ShowBalloonTip(3000, AppName, $"Switched to {mode}: Applied '{profileName}'", ToolTipIcon.Info);
+        string title = $"Switched to {mode}";
+        string detail = $"Applied '{profileName}'";
+
+        // A toast of our own, so the tandem discs get a square beside the text rather than
+        // the 16 px slot a tray balloon gives a picture.
+        if (!ToastNotifier.Show(title, detail, hdr: state == HdrState.On))
+            _trayIcon.ShowBalloonTip(3000, AppName, $"{title}: {detail}", ToolTipIcon.Info);
     }
 
     private void UpdateTrayState()
