@@ -149,7 +149,7 @@ internal class TandemHdrContext : ApplicationContext
         var startupProfile = ApplyProfile(initialState);
         ShowProfileNotification(startupProfile, initialState);
 
-        if (_config.CheckForUpdatesOnStart)
+        if (_config.CheckForUpdatesOnStart && !BuildInfo.IsDev)
             _ = CheckForUpdatesOnStart();
 
         if (openSettingsOnStart)
@@ -428,7 +428,7 @@ internal class TandemHdrContext : ApplicationContext
 
     private void UpdateTrayState()
     {
-        _trayIcon.Text = _currentState switch
+        _trayIcon.Text = (BuildInfo.IsDev ? "Tandem HDR (Dev)\n" : "") + _currentState switch
         {
             HdrState.On => "HDR is on\nClick to turn off HDR",
             HdrState.Off => "HDR is off\nClick to turn on HDR",

@@ -23,7 +23,7 @@ static class Program
         // one to let go of the mutex instead of treating it as a second instance.
         bool relaunchedAfterUpdate = args.Contains(UpdateService.UpdatedArgument, StringComparer.OrdinalIgnoreCase);
 
-        using var mutex = new Mutex(false, @"Global\TandemHdr_SingleInstance");
+        using var mutex = new Mutex(false, @"Global\TandemHdr_SingleInstance" + BuildInfo.Suffix);
         if (!TryAcquire(mutex, relaunchedAfterUpdate ? TimeSpan.FromSeconds(15) : TimeSpan.Zero))
         {
             Logger.Log("Another instance is already running, exiting");

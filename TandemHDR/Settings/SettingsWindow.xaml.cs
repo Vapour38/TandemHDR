@@ -68,6 +68,8 @@ internal partial class SettingsWindow : Window
         bool readOnly = false)
     {
         InitializeComponent();
+        if (BuildInfo.IsDev)
+            DevBadge.Visibility = Visibility.Visible;
 
         _config = config;
         _iccService = iccService;

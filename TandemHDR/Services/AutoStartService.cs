@@ -23,6 +23,9 @@ internal static class AutoStartService
 
     public static void SetEnabled(bool enable)
     {
+        // The Run entry holds one exe path, and a dev build's folder is deleted after the run.
+        if (BuildInfo.IsDev) return;
+
         using var key = Registry.CurrentUser.OpenSubKey(RegistryRunKey, true);
         if (key == null) return;
 

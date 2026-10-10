@@ -20,6 +20,7 @@
     <Copyright>Copyright (c) 2026 Lachlan Dennis</Copyright>
     <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
     <ApplicationIcon>app.ico</ApplicationIcon>
+    <DefineConstants Condition="'$(DevBuild)' == 'true'">$(DefineConstants);DEV</DefineConstants>
   </PropertyGroup>
 
   <ItemGroup>

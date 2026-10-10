@@ -7,7 +7,7 @@ namespace TandemHdr.Configuration;
 
 internal static class ConfigManager
 {
-    private const string RegistryKey = @"SOFTWARE\Tandem HDR";
+    private const string RegistryKey = @"SOFTWARE\Tandem HDR" + BuildInfo.Suffix;
     private const string ValueName = "Config";
 
     private static readonly JsonSerializerOptions Options = new()

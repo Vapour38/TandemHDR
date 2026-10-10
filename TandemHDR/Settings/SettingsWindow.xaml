@@ -40,7 +40,12 @@
 
         <!-- Title bar -->
         <Grid Grid.Row="0">
-            <TextBlock Text="Tandem HDR" Style="{StaticResource CaptionTitleText}" Margin="16,0,0,0" />
+            <StackPanel Orientation="Horizontal" Margin="16,0,0,0">
+                <TextBlock Text="Tandem HDR" Style="{StaticResource CaptionTitleText}" />
+                <TextBlock x:Name="DevBadge" Text="DEV BUILD" Visibility="Collapsed" FontWeight="SemiBold"
+                           Style="{StaticResource CaptionTitleText}" Margin="10,0,0,0"
+                           Foreground="{DynamicResource WarningForegroundBrush}" />
+            </StackPanel>
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Top">
                 <Button x:Name="MinimiseButton" Style="{StaticResource CaptionButton}" Click="OnMinimiseClick"
                         ToolTip="Minimise">
