@@ -152,13 +152,16 @@
         <Setter Property="Height" Value="8" />
     </Style>
 
-    <!-- Divider: 1px rule spanning the content width, between sections. -->
+    <!-- Section heading: separation comes from the space above it, not a rule, so there is
+         twice as much room above a heading as below it. The 12px inset matches RowBand's
+         padding, which puts headings on the same left edge as row contents. -->
 
-    <Style x:Key="Divider" TargetType="Border">
-        <Setter Property="Height" Value="1" />
-        <Setter Property="Background" Value="{DynamicResource DividerBrush}" />
-        <Setter Property="Margin" Value="0,14,0,14" />
-        <Setter Property="SnapsToDevicePixels" Value="True" />
+    <Style x:Key="SectionHeading" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{StaticResource UiFontFamily}" />
+        <Setter Property="FontSize" Value="16" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Foreground" Value="{DynamicResource ForegroundPrimaryBrush}" />
+        <Setter Property="Margin" Value="12,28,0,12" />
     </Style>
 
     <!-- Banded row: settings rows sit on a fill one step lighter than the page surface. -->
@@ -200,6 +203,13 @@
                 </ControlTemplate>
             </Setter.Value>
         </Setter>
+        <!-- A style trigger, not a template one, so the styles based on this one keep it
+             even where they replace the template. -->
+        <Style.Triggers>
+            <Trigger Property="IsEnabled" Value="False">
+                <Setter Property="Opacity" Value="0.45" />
+            </Trigger>
+        </Style.Triggers>
     </Style>
 
     <!-- Checkbox: 20px square, 4px radius. Checked fills solid blue with a white glyph;
@@ -310,60 +320,6 @@
                             </MultiTrigger.Conditions>
                             <Setter TargetName="Box" Property="BorderBrush" Value="{DynamicResource ForegroundPrimaryBrush}" />
                         </MultiTrigger>
-                    </ControlTemplate.Triggers>
-                </ControlTemplate>
-            </Setter.Value>
-        </Setter>
-    </Style>
-
-    <!-- Collapsible section header: chevron then title, chevron pointing up when expanded.
-         A ToggleButton styled from scratch rather than the stock Expander, whose default
-         template renders a boxed classic-Windows triangle that clashes with everything here.
-         The title comes from Content, so one style serves every section. -->
-
-    <Style x:Key="SectionHeaderToggle" TargetType="ToggleButton">
-        <Setter Property="Cursor" Value="Hand" />
-        <Setter Property="Focusable" Value="True" />
-        <Setter Property="HorizontalContentAlignment" Value="Left" />
-        <Setter Property="Template">
-            <Setter.Value>
-                <ControlTemplate TargetType="ToggleButton">
-                    <Border x:Name="Bg" CornerRadius="6" Padding="6,7" Background="Transparent">
-                        <StackPanel Orientation="Horizontal">
-                            <Path x:Name="Chevron"
-                                  Data="M 0,4 L 4,0 L 8,4"
-                                  Stroke="{DynamicResource ForegroundSecondaryBrush}"
-                                  StrokeThickness="1.5"
-                                  StrokeStartLineCap="Round" StrokeEndLineCap="Round"
-                                  StrokeLineJoin="Round"
-                                  Width="8" Height="4"
-                                  VerticalAlignment="Center"
-                                  Margin="0,0,10,0"
-                                  RenderTransformOrigin="0.5,0.5">
-                                <Path.RenderTransform>
-                                    <RotateTransform Angle="0" />
-                                </Path.RenderTransform>
-                            </Path>
-                            <ContentPresenter VerticalAlignment="Center"
-                                              TextElement.Foreground="{DynamicResource ForegroundPrimaryBrush}"
-                                              TextElement.FontFamily="{StaticResource UiFontFamily}"
-                                              TextElement.FontSize="16"
-                                              TextElement.FontWeight="Medium" />
-                        </StackPanel>
-                    </Border>
-                    <ControlTemplate.Triggers>
-                        <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="Bg" Property="Background" Value="{DynamicResource RowHoverBrush}" />
-                        </Trigger>
-                        <!-- Unchecked (collapsed) points the chevron down; the Data above is
-                             the expanded, upward-pointing form. -->
-                        <Trigger Property="IsChecked" Value="False">
-                            <Setter TargetName="Chevron" Property="RenderTransform">
-                                <Setter.Value>
-                                    <RotateTransform Angle="180" />
-                                </Setter.Value>
-                            </Setter>
-                        </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
             </Setter.Value>

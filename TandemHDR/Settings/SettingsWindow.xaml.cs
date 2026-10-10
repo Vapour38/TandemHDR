@@ -1,5 +1,4 @@
-﻿using System.Collections.ObjectModel;
-using System.IO;
+﻿using System.IO;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -27,7 +26,6 @@ internal partial class SettingsWindow : Window
     private readonly Func<HdrState> _getCurrentState;
     private readonly Func<string?> _getActiveProfileName;
     private readonly Action _onProfileChanged;
-    private readonly Action _onProgramsChanged;
     private readonly Action _onRestartForUpdate;
     private readonly Action _onDataRemoved;
     private readonly DispatcherTimer _statusTimer;
@@ -41,11 +39,9 @@ internal partial class SettingsWindow : Window
     /// <summary>What the Updates section is currently showing, and what its button acts on.</summary>
     private UpdateCheck _update = UpdateService.Last;
 
-    private readonly ObservableCollection<ProgramEntry> _programs = [];
-
-    /// <summary>One row of the Programs tab. Name is what the user reads; Path is both the
-    /// subtitle and the identity used to remove the entry.</summary>
-    internal record ProgramEntry(string Name, string Path);
+    /// <summary>Whether the last failure came from a download rather than a check, so the
+    /// status line can say which one went wrong.</summary>
+    private bool _downloadFailed;
 
     /// <summary>One entry in a profile dropdown. Display is the file name, which is what the
     /// profile is applied by; Path is null only for the "not set" entry.</summary>
@@ -56,17 +52,20 @@ internal partial class SettingsWindow : Window
 
     private static readonly ProfileOption NotSet = new("Not set", null);
 
+    /// <summary>Last entry in each profile dropdown. Opens the file dialog for a profile
+    /// that Windows has not installed yet.</summary>
+    private static readonly ProfileOption BrowseOption = new("Browse for a file…", null);
+
     public SettingsWindow(
         AppConfig config,
-        DisplayService displayService,
-        HdrService hdrService,
         IccProfileService iccService,
         Func<HdrState> getCurrentState,
         Func<string?> getActiveProfileName,
         Action onProfileChanged,
         Action onProgramsChanged,
         Action onRestartForUpdate,
-        Action onDataRemoved)
+        Action onDataRemoved,
+        bool readOnly = false)
     {
         InitializeComponent();
 
@@ -75,18 +74,10 @@ internal partial class SettingsWindow : Window
         _getCurrentState = getCurrentState;
         _getActiveProfileName = getActiveProfileName;
         _onProfileChanged = onProfileChanged;
-        _onProgramsChanged = onProgramsChanged;
         _onRestartForUpdate = onRestartForUpdate;
         _onDataRemoved = onDataRemoved;
 
-        // Set after InitializeComponent, not via IsChecked="True" in XAML: the Checked event
-        // fires while BAML is still building the tree, before the panel fields it touches
-        // have been assigned.
-        ProfilesToggle.IsChecked = true;
-        SystemToggle.IsChecked = true;
-        UpdatesToggle.IsChecked = true;
-
-        ProgramsList.ItemsSource = _programs;
+        ProgramsPanel.Initialize(config, onProgramsChanged, readOnly);
 
         LoadFromConfig();
         RefreshStatus();
@@ -183,7 +174,6 @@ internal partial class SettingsWindow : Window
         AutoStartCheck.IsChecked = AutoStartService.IsEnabled();
         SyncExternalCheck.IsChecked = _config.SyncProfilesWithExternalHdrChanges;
         NotificationsCheck.IsChecked = _config.ShowNotifications;
-        AutoSwitchCheck.IsChecked = _config.AutoSwitchForPrograms;
         UpdateOnStartCheck.IsChecked = _config.CheckForUpdatesOnStart;
 
         // A staged exe from an earlier session outlives the check that produced it.
@@ -191,10 +181,6 @@ internal partial class SettingsWindow : Window
             _update = _update with { Status = UpdateStatus.Ready };
         RenderUpdateState();
 
-        _programs.Clear();
-        foreach (var path in _config.HdrPrograms)
-            _programs.Add(new ProgramEntry(Path.GetFileNameWithoutExtension(path), path));
-        UpdateProgramsEmptyState();
     }
 
     /// <summary>Fills both dropdowns from the profiles Windows already has installed, which
@@ -222,6 +208,7 @@ internal partial class SettingsWindow : Window
             if (name != null && !options.Any(o => Same(o.Display, name)))
                 options.Insert(1, new ProfileOption(name, configured));
 
+            options.Add(BrowseOption);
             combo.ItemsSource = options;
             combo.SelectedItem = options.FirstOrDefault(o => name != null && Same(o.Display, name)) ?? NotSet;
         }
@@ -240,12 +227,12 @@ internal partial class SettingsWindow : Window
         SetupBanner.Visibility = sdr && hdr ? Visibility.Collapsed : Visibility.Visible;
         SetupBannerText.Text = (sdr, hdr) switch
         {
-            (false, false) => "Choose an SDR and an HDR colour profile below. Until both are set, "
-                            + "Tandem HDR switches HDR without changing your colour profile.",
-            (true, false) => "Choose an HDR colour profile below. Until you do, turning HDR on "
-                           + "leaves your SDR profile in place.",
-            _ => "Choose an SDR colour profile below. Until you do, turning HDR off "
-               + "leaves your HDR profile in place.",
+            (false, false) => "Choose an SDR and an HDR profile below. Until then, Tandem HDR "
+                            + "switches HDR but does not change your colour profile.",
+            (true, false) => "Choose an HDR profile below. Until then, your SDR profile stays "
+                           + "applied when HDR turns on.",
+            _ => "Choose an SDR profile below. Until then, your HDR profile stays "
+               + "applied when HDR turns off.",
         };
     }
 
@@ -276,7 +263,8 @@ internal partial class SettingsWindow : Window
         StatusDot.Fill = (Brush)FindResource(dotBrushKey);
 
         string? active = _getActiveProfileName();
-        StatusDetailText.Text = active != null ? $"· Applied ‘{active}’" : string.Empty;
+        // Same wording as the tray menu's caption.
+        StatusDetailText.Text = active != null ? $"Profile: {active}" : "No profile applied";
     }
 
     private void OnSdrProfileSelected(object sender, SelectionChangedEventArgs e)
@@ -292,6 +280,18 @@ internal partial class SettingsWindow : Window
         var combo = isSdr ? SdrProfileCombo : HdrProfileCombo;
         if (combo.SelectedItem is not ProfileOption option) return;
 
+        // The browse entry is a command, not a value: put the selection back, then open the
+        // dialog once this selection change has finished.
+        if (ReferenceEquals(option, BrowseOption))
+        {
+            Dispatcher.BeginInvoke(() =>
+            {
+                PopulateProfileCombos();
+                BrowseForProfile(isSdr);
+            });
+            return;
+        }
+
         // Re-picking the profile already configured, just by its installed copy rather than
         // the file it was chosen from, is not a change: rewriting the path would only lose
         // track of the original.
@@ -301,12 +301,6 @@ internal partial class SettingsWindow : Window
 
         SetProfile(isSdr, option.Path);
     }
-
-    private void OnSdrBrowseClick(object sender, RoutedEventArgs e)
-        => BrowseForProfile(isSdr: true);
-
-    private void OnHdrBrowseClick(object sender, RoutedEventArgs e)
-        => BrowseForProfile(isSdr: false);
 
     private void BrowseForProfile(bool isSdr)
     {
@@ -397,6 +391,7 @@ internal partial class SettingsWindow : Window
         UpdateDetailText.Visibility = Visibility.Collapsed;
 
         _update = downloading ? await UpdateService.DownloadAsync(_update) : await UpdateService.CheckAsync();
+        _downloadFailed = downloading && _update.Status == UpdateStatus.Failed;
 
         UpdateActionButton.IsEnabled = true;
         RenderUpdateState();
@@ -425,7 +420,8 @@ internal partial class SettingsWindow : Window
                                                : $"You have v{current}.", "Download and install"),
             UpdateStatus.Ready => ("Update ready to install",
                                    "Tandem HDR will restart to finish updating.", "Restart now"),
-            UpdateStatus.Failed => ("Could not check for updates", _update.Error, "Try again"),
+            UpdateStatus.Failed => (_downloadFailed ? "Could not download the update" : "Could not check for updates",
+                                    _update.Error, "Try again"),
             _ => ($"Version {current}", null, "Check now"),
         };
 
@@ -521,85 +517,4 @@ internal partial class SettingsWindow : Window
         => WindowState = WindowState == WindowState.Maximized ? WindowState.Normal : WindowState.Maximized;
 
     private void OnCloseClick(object sender, RoutedEventArgs e) => Close();
-
-    private void OnAddProgramClick(object sender, RoutedEventArgs e)
-    {
-        var dialog = new OpenFileDialog
-        {
-            Title = "Choose a program",
-            Filter = "Programs (*.exe)|*.exe|All files (*.*)|*.*",
-        };
-
-        if (dialog.ShowDialog(this) != true)
-            return;
-
-        AddProgram(dialog.FileName);
-        ConfigManager.Save(_config);
-        _onProgramsChanged();
-    }
-
-    private void OnScanGamesClick(object sender, RoutedEventArgs e)
-    {
-        var picker = new GamePickerWindow(_config.HdrPrograms) { Owner = this };
-        if (picker.ShowDialog() != true || picker.SelectedPaths.Count == 0)
-            return;
-
-        foreach (string path in picker.SelectedPaths)
-            AddProgram(path);
-
-        ConfigManager.Save(_config);
-        _onProgramsChanged();
-    }
-
-    /// <summary>Adds one program to the config and the visible list, ignoring duplicates.
-    /// Saving is left to the caller so a batch add writes the file once.</summary>
-    private void AddProgram(string path)
-    {
-        if (_config.HdrPrograms.Any(p => string.Equals(p, path, StringComparison.OrdinalIgnoreCase)))
-            return;
-
-        _config.HdrPrograms.Add(path);
-        _programs.Add(new ProgramEntry(Path.GetFileNameWithoutExtension(path), path));
-        UpdateProgramsEmptyState();
-    }
-
-    private void OnRemoveProgramClick(object sender, RoutedEventArgs e)
-    {
-        if (((System.Windows.Controls.Button)sender).Tag is not string path)
-            return;
-
-        _config.HdrPrograms.RemoveAll(p => string.Equals(p, path, StringComparison.OrdinalIgnoreCase));
-
-        var row = _programs.FirstOrDefault(p => string.Equals(p.Path, path, StringComparison.OrdinalIgnoreCase));
-        if (row != null)
-            _programs.Remove(row);
-        UpdateProgramsEmptyState();
-
-        ConfigManager.Save(_config);
-        _onProgramsChanged();
-    }
-
-    private void OnAutoSwitchToggled(object sender, RoutedEventArgs e)
-    {
-        if (_initializing) return;
-
-        _config.AutoSwitchForPrograms = AutoSwitchCheck.IsChecked == true;
-        ConfigManager.Save(_config);
-        _onProgramsChanged();
-    }
-
-    private void UpdateProgramsEmptyState()
-        => NoProgramsText.Visibility = _programs.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
-
-    private void OnProfilesToggled(object sender, RoutedEventArgs e)
-        => ProfilesPanel.Visibility = Collapsed(ProfilesToggle);
-
-    private void OnSystemToggled(object sender, RoutedEventArgs e)
-        => SystemPanel.Visibility = Collapsed(SystemToggle);
-
-    private void OnUpdatesToggled(object sender, RoutedEventArgs e)
-        => UpdatesPanel.Visibility = Collapsed(UpdatesToggle);
-
-    private static Visibility Collapsed(System.Windows.Controls.Primitives.ToggleButton header)
-        => header.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
 }

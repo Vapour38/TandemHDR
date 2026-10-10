@@ -1,0 +1,247 @@
+<UserControl x:Class="TandemHdr.Settings.ProgramsPanel"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:ClassModifier="internal">
+
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVis" />
+
+        <!-- The row header is one wide click target. The negative margin lets the hover
+             fill reach past the text while the text stays 12px from the panel edge. -->
+        <Style x:Key="RowHeaderToggle" TargetType="ToggleButton">
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Focusable" Value="True" />
+            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+            <EventSetter Event="KeyDown" Handler="OnHeaderKeyDown" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ToggleButton">
+                        <Border x:Name="Bg" CornerRadius="4" Padding="6,4" Margin="-6,-4"
+                                Background="Transparent" SnapsToDevicePixels="True">
+                            <ContentPresenter />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bg" Property="Background" Value="{DynamicResource RowHoverBrush}" />
+                            </Trigger>
+                            <Trigger Property="IsKeyboardFocused" Value="True">
+                                <Setter TargetName="Bg" Property="Background" Value="{DynamicResource RowHoverBrush}" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="RowName" TargetType="TextBlock" BasedOn="{StaticResource BodyText}">
+            <Setter Property="Foreground" Value="{DynamicResource ForegroundPrimaryBrush}" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding IsOff}" Value="True">
+                    <Setter Property="Foreground" Value="{DynamicResource ForegroundMutedBrush}" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="ChipBorder" TargetType="Border">
+            <Setter Property="Background" Value="{DynamicResource RowHoverBrush}" />
+            <Setter Property="CornerRadius" Value="3" />
+            <Setter Property="Padding" Value="6,1" />
+            <Setter Property="Margin" Value="6,0,0,0" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+
+        <Style x:Key="DetailLabel" TargetType="TextBlock" BasedOn="{StaticResource SecondaryText}">
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+
+        <Style x:Key="DetailValue" TargetType="TextBlock" BasedOn="{StaticResource BodyText}">
+            <Setter Property="FontSize" Value="13" />
+        </Style>
+
+        <DataTemplate x:Key="ProgramRowTemplate">
+            <Border Style="{StaticResource RowBand}">
+                <StackPanel>
+                    <!-- Header -->
+                    <ToggleButton Style="{StaticResource RowHeaderToggle}"
+                                  IsChecked="{Binding IsExpanded, Mode=TwoWay}"
+                                  AutomationProperties.Name="{Binding DisplayName}">
+                        <!-- The exe name stays visible while collapsed: it is what the
+                             watcher matches, and the display name may come from a folder. -->
+                        <DockPanel LastChildFill="False">
+                        <TextBlock DockPanel.Dock="Right" Text="{Binding ExeName}"
+                                   Style="{StaticResource SecondaryText}" VerticalAlignment="Center"
+                                   Margin="12,0,0,0" />
+                        <StackPanel Orientation="Horizontal" DockPanel.Dock="Left">
+                            <Path x:Name="Chevron" Data="M 0,4 L 4,0 L 8,4" Width="8" Height="4"
+                                  Stroke="{DynamicResource ForegroundSecondaryBrush}" StrokeThickness="1.5"
+                                  StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
+                                  VerticalAlignment="Center" Margin="0,0,10,0"
+                                  RenderTransformOrigin="0.5,0.5">
+                                <Path.RenderTransform>
+                                    <RotateTransform Angle="180" />
+                                </Path.RenderTransform>
+                            </Path>
+                            <TextBlock Text="{Binding DisplayName}" Style="{StaticResource RowName}" />
+                            <Border Style="{StaticResource ChipBorder}"
+                                    Visibility="{Binding HasSource, Converter={StaticResource BoolToVis}}">
+                                <TextBlock Text="{Binding Program.Source}" Style="{StaticResource SecondaryText}" FontSize="11" />
+                            </Border>
+                            <Border Style="{StaticResource ChipBorder}"
+                                    Visibility="{Binding IsOff, Converter={StaticResource BoolToVis}}">
+                                <TextBlock Text="Off" Style="{StaticResource SecondaryText}" FontSize="11" />
+                            </Border>
+                            <Border Style="{StaticResource ChipBorder}"
+                                    Visibility="{Binding HasOwnProfile, Converter={StaticResource BoolToVis}}">
+                                <TextBlock Text="Own HDR profile" Style="{StaticResource SecondaryText}" FontSize="11" />
+                            </Border>
+                            <Border Style="{StaticResource ChipBorder}"
+                                    Visibility="{Binding FileMissing, Converter={StaticResource BoolToVis}}">
+                                <TextBlock Text="Not found" Style="{StaticResource SecondaryText}" FontSize="11"
+                                           Foreground="{DynamicResource WarningForegroundBrush}" />
+                            </Border>
+                        </StackPanel>
+                        </DockPanel>
+                    </ToggleButton>
+
+                    <!-- Body -->
+                    <Border Margin="18,12,0,0" Padding="0,12,0,0"
+                            BorderBrush="{DynamicResource DividerBrush}" BorderThickness="0,1,0,0"
+                            Visibility="{Binding IsExpanded, Converter={StaticResource BoolToVis}}">
+                        <StackPanel>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="140" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
+
+                                <TextBlock Grid.Row="0" Text="Program" Style="{StaticResource DetailLabel}"
+                                           VerticalAlignment="Top" Margin="0,2,0,8" />
+                                <StackPanel Grid.Row="0" Grid.Column="1" Margin="0,0,0,8">
+                                    <TextBlock Text="{Binding Path}" ToolTip="{Binding Path}"
+                                               Style="{StaticResource PathText}" FontSize="13"
+                                               Foreground="{DynamicResource ForegroundSecondaryBrush}" />
+                                    <TextBlock Text="This file can no longer be found."
+                                               Style="{StaticResource SecondaryText}" Margin="0,2,0,0"
+                                               Foreground="{DynamicResource WarningForegroundBrush}"
+                                               Visibility="{Binding FileMissing, Converter={StaticResource BoolToVis}}" />
+                                </StackPanel>
+
+                                <TextBlock Grid.Row="1" Text="Found in" Style="{StaticResource DetailLabel}"
+                                           Margin="0,0,0,8" />
+                                <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding FoundIn}"
+                                           Style="{StaticResource DetailValue}" Margin="0,0,0,8" />
+
+                                <TextBlock Grid.Row="2" Text="Last played" Style="{StaticResource DetailLabel}"
+                                           Visibility="{Binding HasLastPlayed, Converter={StaticResource BoolToVis}}" />
+                                <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding LastPlayedText}"
+                                           Style="{StaticResource DetailValue}"
+                                           Visibility="{Binding HasLastPlayed, Converter={StaticResource BoolToVis}}" />
+                            </Grid>
+
+                            <CheckBox Style="{StaticResource SettingsCheckBox}" FontSize="13"
+                                      Content="Switch HDR for this program" Margin="0,16,0,0"
+                                      IsChecked="{Binding Enabled, Mode=TwoWay}" />
+
+                            <Grid Margin="0,12,0,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="140" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Text="HDR profile" Style="{StaticResource DetailLabel}" />
+                                <ComboBox Grid.Column="1" Style="{StaticResource ProfileComboBox}"
+                                          MinWidth="320" HorizontalAlignment="Left" MaxDropDownHeight="320"
+                                          AutomationProperties.Name="HDR profile for this program"
+                                          ItemsSource="{Binding Profiles}"
+                                          SelectedItem="{Binding SelectedProfile, Mode=TwoWay}" />
+                            </Grid>
+
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,16,0,0">
+                                <Button Content="Open folder" Style="{StaticResource SmallButton}"
+                                        IsEnabled="{Binding FileFound}"
+                                        AutomationProperties.Name="Open the folder of this program"
+                                        Click="OnOpenFolderClick" />
+                                <Button Content="Remove" Style="{StaticResource SmallButton}" Margin="8,0,0,0"
+                                        AutomationProperties.Name="Remove this program from the list"
+                                        Click="OnRemoveProgramClick" />
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+            </Border>
+            <DataTemplate.Triggers>
+                <DataTrigger Binding="{Binding IsExpanded}" Value="True">
+                    <Setter TargetName="Chevron" Property="RenderTransform">
+                        <Setter.Value>
+                            <RotateTransform Angle="0" />
+                        </Setter.Value>
+                    </Setter>
+                </DataTrigger>
+            </DataTemplate.Triggers>
+        </DataTemplate>
+    </UserControl.Resources>
+
+    <Grid Margin="24,20,24,24">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <!-- The master switch doubles as the explanation of the list: one line
+             says what the tab does, instead of a heading, an intro and a checkbox
+             that each said part of it. -->
+        <Grid Grid.Row="0" Margin="12,0,0,16">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <CheckBox x:Name="AutoSwitchCheck" Grid.Column="0" Style="{StaticResource SettingsCheckBox}"
+                      VerticalAlignment="Center" Margin="0,0,16,0"
+                      AutomationProperties.Name="Turn HDR on while any of these programs are running"
+                      Checked="OnAutoSwitchToggled" Unchecked="OnAutoSwitchToggled">
+                <StackPanel>
+                    <TextBlock Text="Turn HDR on while any of these programs are running"
+                               Style="{StaticResource BodyText}" TextWrapping="Wrap" />
+                    <TextBlock Text="When the last one closes, HDR goes back to how you had it."
+                               Style="{StaticResource SecondaryText}" Margin="0,2,0,0" TextWrapping="Wrap" />
+                </StackPanel>
+            </CheckBox>
+            <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                <Button x:Name="BrowseProgramButton" Content="Choose .exe…"
+                        Style="{StaticResource SecondaryButton}"
+                        Click="OnAddProgramClick" />
+                <Button x:Name="ScanGamesButton" Content="Add programs…"
+                        Style="{StaticResource PrimaryButton}" Margin="8,0,0,0"
+                        Click="OnScanGamesClick" />
+            </StackPanel>
+        </Grid>
+
+        <!-- The list -->
+        <Grid Grid.Row="1">
+            <TextBlock x:Name="NoProgramsText" Style="{StaticResource SecondaryText}"
+                       Text="No programs yet. Choose Add programs… to pick from your games and recently run programs."
+                       Margin="12,0,0,0" VerticalAlignment="Top" TextWrapping="Wrap" />
+
+            <ScrollViewer x:Name="ProgramsScroller" VerticalScrollBarVisibility="Auto">
+                <!-- Faded while the master switch is off, so the list reads as kept
+                     but not acted on. Still editable. -->
+                <ScrollViewer.Style>
+                    <Style TargetType="ScrollViewer">
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding IsChecked, ElementName=AutoSwitchCheck}" Value="False">
+                                <Setter Property="Opacity" Value="0.55" />
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </ScrollViewer.Style>
+                <ItemsControl x:Name="ProgramsList" ItemTemplate="{StaticResource ProgramRowTemplate}" />
+            </ScrollViewer>
+        </Grid>
+    </Grid>
+</UserControl>

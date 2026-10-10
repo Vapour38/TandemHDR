@@ -45,7 +45,7 @@ static class Program
         // the Run key at sign-in stays in the tray.
         bool launchedByWindows = args.Contains(AutoStartService.StartupArgument, StringComparer.OrdinalIgnoreCase);
 
-        Application.Run(new TandemHdrContext(config, displayService, hdrService, iccService, initialState,
+        Application.Run(new TandemHdrContext(config, hdrService, iccService, initialState,
             openSettingsOnStart: !launchedByWindows));
 
         Logger.Log("Tandem HDR exiting");

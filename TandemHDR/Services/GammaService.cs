@@ -42,8 +42,6 @@ internal static class GammaService
         return SetRamp(gdiDeviceName, ramp);
     }
 
-    public static bool SetLinear(string gdiDeviceName) => SetRamp(gdiDeviceName, LinearRamp());
-
     private static bool SetRamp(string gdiDeviceName, ushort[] ramp)
     {
         if (string.IsNullOrEmpty(gdiDeviceName))

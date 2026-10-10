@@ -38,8 +38,8 @@ internal partial class GamePickerWindow : Window
     private readonly HashSet<string> _alreadyAdded;
     private bool _loaded;
 
-    /// <summary>Executables the user chose, empty if they cancelled.</summary>
-    public List<string> SelectedPaths { get; private set; } = [];
+    /// <summary>Entries the user chose, empty if they cancelled.</summary>
+    public List<PickerEntry> SelectedEntries { get; private set; } = [];
 
     public GamePickerWindow(IEnumerable<string> alreadyAdded)
     {
@@ -171,10 +171,9 @@ internal partial class GamePickerWindow : Window
 
     private void OnAddClick(object sender, RoutedEventArgs e)
     {
-        SelectedPaths = _allGames.Concat(_allRecent)
+        SelectedEntries = _allGames.Concat(_allRecent)
             .Where(c => c.IsSelected)
-            .Select(c => c.Path)
-            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .DistinctBy(c => c.Path, StringComparer.OrdinalIgnoreCase)
             .ToList();
 
         DialogResult = true;

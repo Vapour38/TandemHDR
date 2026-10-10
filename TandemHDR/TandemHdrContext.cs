@@ -18,7 +18,6 @@ internal class TandemHdrContext : ApplicationContext
     private readonly System.Windows.Forms.Timer _profileRefreshTimer;
     private readonly GameWatcher _gameWatcher;
 
-    private readonly DisplayService _displayService;
     private readonly HdrService _hdrService;
     private readonly IccProfileService _iccService;
 
@@ -29,6 +28,10 @@ internal class TandemHdrContext : ApplicationContext
     // What HDR was doing before a watched program forced it on, so exiting the program
     // puts the display back the way the user had it rather than always turning HDR off.
     private HdrState? _stateBeforeProgram;
+
+    // The watched program holding HDR on, by process name, so its own HDR profile can stand
+    // in for the main one until it exits.
+    private string? _runningProgram;
 
     private const string AppName = "Tandem HDR";
 
@@ -60,6 +63,9 @@ internal class TandemHdrContext : ApplicationContext
     [DllImport("user32.dll")]
     private static extern int GetSystemMetrics(int nIndex);
 
+    [DllImport("user32.dll")]
+    private static extern bool DestroyIcon(IntPtr hIcon);
+
     private const uint MF_STRING = 0x0000;
     private const uint MF_SEPARATOR = 0x0800;
     private const uint MF_CHECKED = 0x0008;
@@ -84,12 +90,11 @@ internal class TandemHdrContext : ApplicationContext
 
     #endregion
 
-    public TandemHdrContext(AppConfig config, DisplayService displayService,
+    public TandemHdrContext(AppConfig config,
         HdrService hdrService, IccProfileService iccService, HdrState initialState,
         bool openSettingsOnStart)
     {
         _config = config;
-        _displayService = displayService;
         _hdrService = hdrService;
         _iccService = iccService;
         _currentState = initialState;
@@ -141,7 +146,7 @@ internal class TandemHdrContext : ApplicationContext
             AutoStartService.SetEnabled(true);
 
         // Show notification for the initial profile application
-        var startupProfile = _iccService.ApplyProfileForState(initialState, _config.SdrProfilePath, _config.HdrProfilePath);
+        var startupProfile = ApplyProfile(initialState);
         ShowProfileNotification(startupProfile, initialState);
 
         if (_config.CheckForUpdatesOnStart)
@@ -265,7 +270,7 @@ internal class TandemHdrContext : ApplicationContext
 
     private void OpenSettings()
     {
-        WpfHost.ShowSettings(_config, _displayService, _hdrService, _iccService,
+        WpfHost.ShowSettings(_config, _iccService,
             getCurrentState: () => _currentState,
             getActiveProfileName: () => _lastNotifiedProfile,
             onProfileChanged: OnSettingsProfileChanged,
@@ -277,8 +282,7 @@ internal class TandemHdrContext : ApplicationContext
     /// <summary>Re-applies the profile for the current state after a profile path edit in the settings window.</summary>
     private void OnSettingsProfileChanged()
     {
-        var appliedProfile = _iccService.ApplyProfileForState(_currentState, _config.SdrProfilePath, _config.HdrProfilePath);
-        ShowProfileNotification(appliedProfile, _currentState);
+        ShowProfileNotification(ApplyProfile(_currentState), _currentState);
     }
 
     /// <summary>Pushes the configured whitelist into the watcher and starts or stops it to
@@ -290,15 +294,36 @@ internal class TandemHdrContext : ApplicationContext
         {
             _gameWatcher.Stop();
             _stateBeforeProgram = null;
+            _runningProgram = null;
             return;
         }
 
-        _gameWatcher.SetWatchList(_config.HdrPrograms);
+        _gameWatcher.SetWatchList(_config.Programs.Where(p => p.Enabled).Select(p => p.Path));
         _gameWatcher.Start();
+
+        // The running program's own HDR profile may just have been changed.
+        if (_runningProgram != null)
+            ShowProfileNotification(ApplyProfile(_currentState), _currentState);
+    }
+
+    /// <summary>Applies the profile for a state: the running program's own HDR profile if it
+    /// has one, otherwise the main one.</summary>
+    private string? ApplyProfile(HdrState state)
+    {
+        // ponytail: matched by file name, like the watcher. Two entries that share an exe
+        // name take the first one's profile.
+        string? programProfile = _runningProgram == null ? null : _config.Programs
+            .FirstOrDefault(p => p.Enabled && string.Equals(
+                System.IO.Path.GetFileNameWithoutExtension(p.Path), _runningProgram, StringComparison.OrdinalIgnoreCase))
+            ?.HdrProfilePath;
+
+        return _iccService.ApplyProfileForState(state, _config.SdrProfilePath,
+            string.IsNullOrWhiteSpace(programProfile) ? _config.HdrProfilePath : programProfile);
     }
 
     private void OnWatchedProgramStarted(string program)
     {
+        _runningProgram = program;
         if (_currentState == HdrState.Unsupported) return;
 
         _stateBeforeProgram = _currentState;
@@ -308,6 +333,7 @@ internal class TandemHdrContext : ApplicationContext
 
     private void OnWatchedProgramExited(string program)
     {
+        _runningProgram = null;
         if (_currentState == HdrState.Unsupported) return;
 
         // Restore, don't blindly switch off: if HDR was already on before the program
@@ -326,12 +352,12 @@ internal class TandemHdrContext : ApplicationContext
         {
             _currentState = _hdrService.SetHdr(enable);
             UpdateTrayState();
-            var appliedProfile = _iccService.ApplyProfileForState(_currentState, _config.SdrProfilePath, _config.HdrProfilePath);
-            ShowProfileNotification(appliedProfile, _currentState);
+            ShowProfileNotification(ApplyProfile(_currentState), _currentState);
         }
         catch (Exception ex)
         {
             Logger.Log($"Failed to set HDR to {(enable ? "on" : "off")}: {ex}");
+            _trayIcon.ShowBalloonTip(3000, AppName, "Failed to switch HDR. Check log for details.", ToolTipIcon.Error);
         }
     }
 
@@ -343,19 +369,9 @@ internal class TandemHdrContext : ApplicationContext
             return;
         }
 
-        try
-        {
-            var newState = _hdrService.ToggleHdr();
-            _currentState = newState;
-            UpdateTrayState();
-            var appliedProfile = _iccService.ApplyProfileForState(newState, _config.SdrProfilePath, _config.HdrProfilePath);
-            ShowProfileNotification(appliedProfile, newState);
-        }
-        catch (Exception ex)
-        {
-            Logger.Log($"Toggle failed: {ex}");
-            _trayIcon.ShowBalloonTip(3000, AppName, "Failed to toggle HDR. Check log for details.", ToolTipIcon.Error);
-        }
+        // Drive to the state the tray offered rather than flipping whatever the display is
+        // doing now, so a click during an unseen external change does what it said.
+        ApplyHdrState(enable: _currentState != HdrState.On);
     }
 
     private void OnStateCheckTick(object? sender, EventArgs e)
@@ -371,8 +387,7 @@ internal class TandemHdrContext : ApplicationContext
 
             if (_config.SyncProfilesWithExternalHdrChanges)
             {
-                var appliedProfile = _iccService.ApplyProfileForState(state, _config.SdrProfilePath, _config.HdrProfilePath);
-                ShowProfileNotification(appliedProfile, state);
+                ShowProfileNotification(ApplyProfile(state), state);
             }
         }
         catch (Exception ex)
@@ -385,7 +400,7 @@ internal class TandemHdrContext : ApplicationContext
     {
         try
         {
-            _iccService.ApplyProfileForState(_currentState, _config.SdrProfilePath, _config.HdrProfilePath);
+            ApplyProfile(_currentState);
         }
         catch (Exception ex)
         {
@@ -419,7 +434,9 @@ internal class TandemHdrContext : ApplicationContext
             HdrState.Off => "HDR is off\nClick to turn on HDR",
             _ => "HDR is unsupported",
         };
+        var previous = _trayIcon.Icon;
         _trayIcon.Icon = CreateIcon(_currentState);
+        previous?.Dispose();
     }
 
     private static Icon CreateIcon(HdrState state)
@@ -431,7 +448,7 @@ internal class TandemHdrContext : ApplicationContext
         // Render at 4x for quality, Windows will display at native size
         int renderSize = iconSize * 4;
 
-        var bmp = new Bitmap(renderSize, renderSize);
+        using var bmp = new Bitmap(renderSize, renderSize);
         using var g = Graphics.FromImage(bmp);
         g.SmoothingMode = SmoothingMode.AntiAlias;
         g.TextRenderingHint = System.Drawing.Text.TextRenderingHint.AntiAliasGridFit;
@@ -470,15 +487,26 @@ internal class TandemHdrContext : ApplicationContext
         TextRenderer.DrawText(g, text, font, iconRect, textColor, flags);
 
         // Scale down to actual icon size for a crisp result
-        var icon_bmp = new Bitmap(iconSize, iconSize);
-        using var ig = Graphics.FromImage(icon_bmp);
-        ig.InterpolationMode = InterpolationMode.HighQualityBicubic;
-        ig.SmoothingMode = SmoothingMode.AntiAlias;
-        ig.DrawImage(bmp, 0, 0, iconSize, iconSize);
-        bmp.Dispose();
+        using var icon_bmp = new Bitmap(iconSize, iconSize);
+        using (var ig = Graphics.FromImage(icon_bmp))
+        {
+            ig.InterpolationMode = InterpolationMode.HighQualityBicubic;
+            ig.SmoothingMode = SmoothingMode.AntiAlias;
+            ig.DrawImage(bmp, 0, 0, iconSize, iconSize);
+        }
 
+        // Icon.FromHandle does not own the HICON, so clone into an Icon that does and free
+        // the original; otherwise every state change leaks a GDI handle.
         var handle = icon_bmp.GetHicon();
-        return Icon.FromHandle(handle);
+        try
+        {
+            using var borrowed = Icon.FromHandle(handle);
+            return (Icon)borrowed.Clone();
+        }
+        finally
+        {
+            DestroyIcon(handle);
+        }
     }
 
     protected override void Dispose(bool disposing)

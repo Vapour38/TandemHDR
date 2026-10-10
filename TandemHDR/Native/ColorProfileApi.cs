@@ -5,16 +5,6 @@ namespace TandemHdr.Native;
 internal static class ColorProfileApi
 {
     [DllImport("mscms.dll", CharSet = CharSet.Unicode, SetLastError = true)]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    public static extern bool WcsSetDefaultColorProfile(
-        WcsProfileManagementScope profileManagementScope,
-        [MarshalAs(UnmanagedType.LPWStr)] string? pDeviceName,
-        ColorProfileType cptColorProfileType,
-        ColorProfileSubType cpstColorProfileSubType,
-        uint dwProfileID,
-        [MarshalAs(UnmanagedType.LPWStr)] string pProfileName);
-
-    [DllImport("mscms.dll", CharSet = CharSet.Unicode, SetLastError = true)]
     public static extern int ColorProfileAddDisplayAssociation(
         WcsProfileManagementScope scope,
         [MarshalAs(UnmanagedType.LPWStr)] string profileName,

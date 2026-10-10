@@ -3,6 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework"
         xmlns:controls="clr-namespace:TandemHdr.Controls"
+        xmlns:local="clr-namespace:TandemHdr.Settings"
         x:ClassModifier="internal"
         Title="Tandem HDR"
         Icon="pack://application:,,,/app.ico"
@@ -68,23 +69,23 @@
 
             <TabItem Header="Settings" Style="{StaticResource NavTabItem}">
                 <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="0">
-                    <StackPanel Margin="24,16,24,24">
+                    <!-- One left edge for everything: the 12px matches the row bands' own
+                         padding, so headings, checkboxes and band contents line up. -->
+                    <StackPanel Margin="24,20,24,24">
 
                         <!-- Status readout -->
-                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="6,0,0,0">
+                        <StackPanel Orientation="Horizontal" Margin="12,0,0,0">
                             <Ellipse x:Name="StatusDot" Style="{StaticResource StatusDot}" Margin="0,0,10,0" />
                             <TextBlock x:Name="StatusText" Style="{StaticResource BodyText}"
                                        Foreground="{DynamicResource ForegroundPrimaryBrush}" FontWeight="SemiBold" />
                             <TextBlock x:Name="StatusDetailText" Style="{StaticResource SecondaryText}"
-                                       Margin="8,0,0,0" VerticalAlignment="Center" />
+                                       Margin="12,0,0,0" VerticalAlignment="Center" />
                         </StackPanel>
-
-                        <Border Style="{StaticResource Divider}" />
 
                         <!-- Shown until both profiles are set: without them the app toggles
                              HDR and nothing else, which looks like it is not working. -->
                         <Border x:Name="SetupBanner" Style="{StaticResource RowBand}"
-                                Margin="0,0,0,14" Visibility="Collapsed">
+                                Margin="0,16,0,0" Visibility="Collapsed">
                             <StackPanel>
                                 <TextBlock Text="Finish setting up" Style="{StaticResource BodyText}"
                                            Foreground="{DynamicResource ForegroundPrimaryBrush}"
@@ -94,140 +95,114 @@
                             </StackPanel>
                         </Border>
 
-                        <!-- Section 1 — Colour profiles -->
-                        <ToggleButton x:Name="ProfilesToggle" Style="{StaticResource SectionHeaderToggle}"
-                                      Content="Colour profiles"
-                                      Checked="OnProfilesToggled" Unchecked="OnProfilesToggled" />
+                        <TextBlock Text="Colour profiles" Style="{StaticResource SectionHeading}" />
 
-                        <StackPanel x:Name="ProfilesPanel" Margin="0,8,0,0">
+                        <Border Style="{StaticResource RowBand}">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="{StaticResource LabelColumnWidth}" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <StackPanel Grid.Column="0" VerticalAlignment="Center" Margin="0,0,12,0">
+                                    <TextBlock Text="SDR profile" Style="{StaticResource BodyText}" />
+                                    <TextBlock Text="Used while HDR is off" Style="{StaticResource SecondaryText}"
+                                               Margin="0,2,0,0" />
+                                    <TextBlock x:Name="SdrWarningText" Style="{StaticResource SecondaryText}"
+                                               Foreground="{DynamicResource WarningForegroundBrush}"
+                                               Margin="0,2,0,0" Visibility="Collapsed" TextWrapping="Wrap" />
+                                </StackPanel>
+                                <ComboBox x:Name="SdrProfileCombo" Grid.Column="1"
+                                          Style="{StaticResource ProfileComboBox}"
+                                          VerticalAlignment="Center" MaxDropDownHeight="320"
+                                          AutomationProperties.Name="SDR profile"
+                                          SelectionChanged="OnSdrProfileSelected" />
+                            </Grid>
+                        </Border>
 
-                            <Border Style="{StaticResource RowBand}">
-                                <Grid>
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="{StaticResource LabelColumnWidth}" />
-                                        <ColumnDefinition Width="*" />
-                                        <ColumnDefinition Width="Auto" />
-                                    </Grid.ColumnDefinitions>
-                                    <StackPanel Grid.Column="0" VerticalAlignment="Center" Margin="0,0,12,0">
-                                        <TextBlock Text="SDR profile" Style="{StaticResource BodyText}" />
-                                        <TextBlock x:Name="SdrWarningText" Style="{StaticResource SecondaryText}"
-                                                   Foreground="{DynamicResource WarningForegroundBrush}"
-                                                   Margin="0,3,0,0" Visibility="Collapsed" TextWrapping="Wrap" />
-                                    </StackPanel>
-                                    <ComboBox x:Name="SdrProfileCombo" Grid.Column="1"
-                                              Style="{StaticResource ProfileComboBox}"
-                                              VerticalAlignment="Center" MaxDropDownHeight="320"
-                                              SelectionChanged="OnSdrProfileSelected" />
-                                    <Button x:Name="SdrBrowseButton" Grid.Column="2" Content="Browse…"
-                                            Style="{StaticResource SecondaryButton}"
-                                            VerticalAlignment="Center" MinWidth="100" Margin="10,0,0,0"
-                                            Click="OnSdrBrowseClick" />
-                                </Grid>
-                            </Border>
+                        <Border Style="{StaticResource RowBand}" Margin="0">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="{StaticResource LabelColumnWidth}" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <StackPanel Grid.Column="0" VerticalAlignment="Center" Margin="0,0,12,0">
+                                    <TextBlock Text="HDR profile" Style="{StaticResource BodyText}" />
+                                    <TextBlock Text="Used while HDR is on" Style="{StaticResource SecondaryText}"
+                                               Margin="0,2,0,0" />
+                                    <TextBlock x:Name="HdrWarningText" Style="{StaticResource SecondaryText}"
+                                               Foreground="{DynamicResource WarningForegroundBrush}"
+                                               Margin="0,2,0,0" Visibility="Collapsed" TextWrapping="Wrap" />
+                                </StackPanel>
+                                <ComboBox x:Name="HdrProfileCombo" Grid.Column="1"
+                                          Style="{StaticResource ProfileComboBox}"
+                                          VerticalAlignment="Center" MaxDropDownHeight="320"
+                                          AutomationProperties.Name="HDR profile"
+                                          SelectionChanged="OnHdrProfileSelected" />
+                            </Grid>
+                        </Border>
 
-                            <Border Style="{StaticResource RowBand}" Margin="0">
-                                <Grid>
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="{StaticResource LabelColumnWidth}" />
-                                        <ColumnDefinition Width="*" />
-                                        <ColumnDefinition Width="Auto" />
-                                    </Grid.ColumnDefinitions>
-                                    <StackPanel Grid.Column="0" VerticalAlignment="Center" Margin="0,0,12,0">
-                                        <TextBlock Text="HDR profile" Style="{StaticResource BodyText}" />
-                                        <TextBlock x:Name="HdrWarningText" Style="{StaticResource SecondaryText}"
-                                                   Foreground="{DynamicResource WarningForegroundBrush}"
-                                                   Margin="0,3,0,0" Visibility="Collapsed" TextWrapping="Wrap" />
-                                    </StackPanel>
-                                    <ComboBox x:Name="HdrProfileCombo" Grid.Column="1"
-                                              Style="{StaticResource ProfileComboBox}"
-                                              VerticalAlignment="Center" MaxDropDownHeight="320"
-                                              SelectionChanged="OnHdrProfileSelected" />
-                                    <Button x:Name="HdrBrowseButton" Grid.Column="2" Content="Browse…"
-                                            Style="{StaticResource SecondaryButton}"
-                                            VerticalAlignment="Center" MinWidth="100" Margin="10,0,0,0"
-                                            Click="OnHdrBrowseClick" />
-                                </Grid>
-                            </Border>
+                        <TextBlock Text="General" Style="{StaticResource SectionHeading}" />
 
-                        </StackPanel>
-
-                        <Border Style="{StaticResource Divider}" />
-
-                        <!-- Section 2 — System integration -->
-                        <ToggleButton x:Name="SystemToggle" Style="{StaticResource SectionHeaderToggle}"
-                                      Content="System integration"
-                                      Checked="OnSystemToggled" Unchecked="OnSystemToggled" />
-
-                        <StackPanel x:Name="SystemPanel" Margin="6,10,0,0">
+                        <StackPanel Margin="12,0,0,0">
                             <CheckBox x:Name="AutoStartCheck" Style="{StaticResource SettingsCheckBox}"
                                       Content="Start with Windows" Margin="0,0,0,12"
                                       Checked="OnAutoStartToggled" Unchecked="OnAutoStartToggled" />
                             <CheckBox x:Name="SyncExternalCheck" Style="{StaticResource SettingsCheckBox}"
-                                      Content="Sync profile when HDR changes outside the app" Margin="0,0,0,12"
+                                      Content="Switch profiles when HDR is turned on or off outside Tandem HDR"
+                                      Margin="0,0,0,12"
                                       Checked="OnSyncExternalToggled" Unchecked="OnSyncExternalToggled" />
                             <CheckBox x:Name="NotificationsCheck" Style="{StaticResource SettingsCheckBox}"
-                                      Content="Show notifications when the profile changes"
+                                      Content="Show a notification when the profile switches"
                                       Checked="OnNotificationsToggled" Unchecked="OnNotificationsToggled" />
                         </StackPanel>
 
-                        <Border Style="{StaticResource Divider}" />
+                        <TextBlock Text="Updates" Style="{StaticResource SectionHeading}" />
 
-                        <!-- Section 3 - Updates -->
-                        <ToggleButton x:Name="UpdatesToggle" Style="{StaticResource SectionHeaderToggle}"
-                                      Content="Updates"
-                                      Checked="OnUpdatesToggled" Unchecked="OnUpdatesToggled" />
+                        <CheckBox x:Name="UpdateOnStartCheck" Style="{StaticResource SettingsCheckBox}"
+                                  Content="Check for updates when Tandem HDR starts" Margin="12,0,0,12"
+                                  Checked="OnUpdateOnStartToggled" Unchecked="OnUpdateOnStartToggled" />
 
-                        <StackPanel x:Name="UpdatesPanel" Margin="0,8,0,0">
-
-                            <CheckBox x:Name="UpdateOnStartCheck" Style="{StaticResource SettingsCheckBox}"
-                                      Content="Check for updates when Tandem HDR starts" Margin="6,2,0,12"
-                                      Checked="OnUpdateOnStartToggled" Unchecked="OnUpdateOnStartToggled" />
-
-                            <Border Style="{StaticResource RowBand}" Margin="0">
-                                <StackPanel>
-                                    <Grid>
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="*" />
-                                            <ColumnDefinition Width="Auto" />
-                                        </Grid.ColumnDefinitions>
-                                        <StackPanel Grid.Column="0" VerticalAlignment="Center" Margin="0,0,12,0">
-                                            <TextBlock x:Name="UpdateStatusText" Style="{StaticResource BodyText}" />
-                                            <TextBlock x:Name="UpdateDetailText" Style="{StaticResource SecondaryText}"
-                                                       Margin="0,2,0,0" TextWrapping="Wrap" Visibility="Collapsed" />
-                                        </StackPanel>
-                                        <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
-                                            <Button x:Name="SkipVersionButton" Content="Skip this version"
-                                                    Style="{StaticResource SecondaryButton}"
-                                                    Margin="0,0,10,0" Visibility="Collapsed"
-                                                    Click="OnSkipVersionClick" />
-                                            <Button x:Name="UpdateActionButton" Content="Check now"
-                                                    Style="{StaticResource SecondaryButton}"
-                                                    MinWidth="150"
-                                                    Click="OnUpdateActionClick" />
-                                        </StackPanel>
-                                    </Grid>
-
-                                    <!-- What actually changed, straight from the release. Capped
-                                         rather than free-growing: notes can run long and this row
-                                         is not the point of the window. -->
-                                    <Border x:Name="UpdateNotesPanel" Visibility="Collapsed"
-                                            Margin="0,12,0,0" Padding="0,10,0,0"
-                                            BorderBrush="{DynamicResource DividerBrush}" BorderThickness="0,1,0,0">
-                                        <ScrollViewer MaxHeight="180" VerticalScrollBarVisibility="Auto">
-                                            <TextBlock x:Name="UpdateNotesText" Style="{StaticResource SecondaryText}"
-                                                       TextWrapping="Wrap" Margin="0,0,10,0" />
-                                        </ScrollViewer>
-                                    </Border>
-                                </StackPanel>
-                            </Border>
-
-                        </StackPanel>
-
-                        <Border Style="{StaticResource Divider}" />
-
-                        <!-- Last thing on the page, and deliberately not a collapsible
-                             section: it is one action, not a group of settings. -->
                         <Border Style="{StaticResource RowBand}" Margin="0">
+                            <StackPanel>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel Grid.Column="0" VerticalAlignment="Center" Margin="0,0,12,0">
+                                        <TextBlock x:Name="UpdateStatusText" Style="{StaticResource BodyText}" />
+                                        <TextBlock x:Name="UpdateDetailText" Style="{StaticResource SecondaryText}"
+                                                   Margin="0,2,0,0" TextWrapping="Wrap" Visibility="Collapsed" />
+                                    </StackPanel>
+                                    <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                                        <Button x:Name="SkipVersionButton" Content="Skip this version"
+                                                Style="{StaticResource SecondaryButton}"
+                                                Margin="0,0,8,0" Visibility="Collapsed"
+                                                Click="OnSkipVersionClick" />
+                                        <Button x:Name="UpdateActionButton" Content="Check now"
+                                                Style="{StaticResource SecondaryButton}"
+                                                MinWidth="140"
+                                                Click="OnUpdateActionClick" />
+                                    </StackPanel>
+                                </Grid>
+
+                                <!-- What actually changed, straight from the release. Capped
+                                     rather than free-growing: notes can run long and this row
+                                     is not the point of the window. -->
+                                <Border x:Name="UpdateNotesPanel" Visibility="Collapsed"
+                                        Margin="0,12,0,0" Padding="0,12,0,0"
+                                        BorderBrush="{DynamicResource DividerBrush}" BorderThickness="0,1,0,0">
+                                    <ScrollViewer MaxHeight="180" VerticalScrollBarVisibility="Auto">
+                                        <TextBlock x:Name="UpdateNotesText" Style="{StaticResource SecondaryText}"
+                                                   TextWrapping="Wrap" Margin="0,0,12,0" />
+                                    </ScrollViewer>
+                                </Border>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Last on the page, with no heading of its own: it is one action,
+                             not a group of settings. -->
+                        <Border Style="{StaticResource RowBand}" Margin="0,32,0,0">
                             <Grid>
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*" />
@@ -237,11 +212,11 @@
                                     <TextBlock Text="Remove Tandem HDR" Style="{StaticResource BodyText}" />
                                     <TextBlock Style="{StaticResource SecondaryText}" Margin="0,2,0,0"
                                                TextWrapping="Wrap"
-                                               Text="Deletes the settings, the start-up entry and the Start Menu shortcut, then closes. You will be asked separately about the colour profiles it copied into Windows. Delete the exe yourself afterwards." />
+                                               Text="Deletes its settings, start-up entry and Start Menu shortcut, then closes. You choose whether to keep your colour profiles." />
                                 </StackPanel>
                                 <Button x:Name="RemoveDataButton" Grid.Column="1" Content="Remove…"
                                         Style="{StaticResource DangerButton}"
-                                        VerticalAlignment="Center" MinWidth="150"
+                                        VerticalAlignment="Center" MinWidth="140"
                                         Click="OnRemoveDataClick" />
                             </Grid>
                         </Border>
@@ -251,75 +226,7 @@
             </TabItem>
 
             <TabItem Header="Programs" Style="{StaticResource NavTabItem}">
-                <Grid Margin="24,16,24,24">
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="*" />
-                    </Grid.RowDefinitions>
-
-                    <!-- Intro + primary action -->
-                    <Grid Grid.Row="0">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="Auto" />
-                        </Grid.ColumnDefinitions>
-                        <StackPanel Grid.Column="0" VerticalAlignment="Center" Margin="6,0,16,0">
-                            <TextBlock Text="HDR programs" Style="{StaticResource BodyText}"
-                                       Foreground="{DynamicResource ForegroundPrimaryBrush}"
-                                       FontSize="16" FontWeight="Medium" />
-                            <TextBlock Style="{StaticResource SecondaryText}" Margin="0,4,0,0" TextWrapping="Wrap"
-                                       Text="HDR turns on while any of these are running, and goes back to how you had it when the last one exits." />
-                        </StackPanel>
-                        <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
-                            <Button x:Name="BrowseProgramButton" Content="Browse…"
-                                    Style="{StaticResource SecondaryButton}" MinWidth="96"
-                                    Click="OnAddProgramClick" />
-                            <Button x:Name="ScanGamesButton" Content="Add installed game…"
-                                    Style="{StaticResource PrimaryButton}" Margin="10,0,0,0"
-                                    Click="OnScanGamesClick" />
-                        </StackPanel>
-                    </Grid>
-
-                    <CheckBox x:Name="AutoSwitchCheck" Grid.Row="1" Style="{StaticResource SettingsCheckBox}"
-                              Content="Automatically switch HDR for these programs"
-                              Margin="6,18,0,14"
-                              Checked="OnAutoSwitchToggled" Unchecked="OnAutoSwitchToggled" />
-
-                    <!-- The list -->
-                    <Grid Grid.Row="2">
-                        <TextBlock x:Name="NoProgramsText" Style="{StaticResource SecondaryText}"
-                                   Text="No programs yet. Add a game's .exe and HDR will follow it."
-                                   Margin="6,10,0,0" VerticalAlignment="Top" />
-
-                        <ScrollViewer x:Name="ProgramsScroller" VerticalScrollBarVisibility="Auto">
-                            <ItemsControl x:Name="ProgramsList">
-                                <ItemsControl.ItemTemplate>
-                                    <DataTemplate>
-                                        <Border Style="{StaticResource RowBand}">
-                                            <Grid>
-                                                <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition Width="*" />
-                                                    <ColumnDefinition Width="Auto" />
-                                                </Grid.ColumnDefinitions>
-                                                <StackPanel Grid.Column="0" VerticalAlignment="Center" Margin="0,0,12,0">
-                                                    <TextBlock Text="{Binding Name}" Style="{StaticResource BodyText}" />
-                                                    <TextBlock Text="{Binding Path}" Style="{StaticResource PathText}"
-                                                               Margin="0,2,0,0" />
-                                                </StackPanel>
-                                                <Button Grid.Column="1" Content="Remove"
-                                                        Style="{StaticResource SmallButton}"
-                                                        VerticalAlignment="Center"
-                                                        Tag="{Binding Path}"
-                                                        Click="OnRemoveProgramClick" />
-                                            </Grid>
-                                        </Border>
-                                    </DataTemplate>
-                                </ItemsControl.ItemTemplate>
-                            </ItemsControl>
-                        </ScrollViewer>
-                    </Grid>
-                </Grid>
+                <local:ProgramsPanel x:Name="ProgramsPanel" />
             </TabItem>
 
         </TabControl>

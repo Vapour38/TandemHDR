@@ -92,20 +92,14 @@ internal class IccProfileService(DisplayService displayService)
         switch (state)
         {
             case HdrState.Off when !string.IsNullOrEmpty(sdrProfilePath):
-                return ApplySdrProfile(display, sdrProfilePath);
+                return Apply(display, sdrProfilePath, advancedColor: false);
             case HdrState.On when !string.IsNullOrEmpty(hdrProfilePath):
-                return ApplyHdrProfile(display, hdrProfilePath);
+                return Apply(display, hdrProfilePath, advancedColor: true);
             default:
                 Logger.Log($"No profile configured for state {state}");
                 return null;
         }
     }
-
-    private string? ApplySdrProfile(DisplayInfo display, string profilePath)
-        => Apply(display, profilePath, advancedColor: false);
-
-    private string? ApplyHdrProfile(DisplayInfo display, string profilePath)
-        => Apply(display, profilePath, advancedColor: true);
 
     /// <summary>
     /// Associates the profile with the display and makes it the default for that colour
@@ -117,8 +111,8 @@ internal class IccProfileService(DisplayService displayService)
     {
         string label = advancedColor ? "HDR" : "SDR";
 
-        string profileName = EnsureInstalled(profilePath);
-        if (profileName == null!) return null;
+        string? profileName = EnsureInstalled(profilePath);
+        if (profileName == null) return null;
 
         int result = ColorProfileApi.ColorProfileAddDisplayAssociation(
             WcsProfileManagementScope.CurrentUser,
@@ -174,7 +168,7 @@ internal class IccProfileService(DisplayService displayService)
         return profileName;
     }
 
-    private static string EnsureInstalled(string profilePath)
+    private static string? EnsureInstalled(string profilePath)
     {
         string fileName = Path.GetFileName(profilePath);
         string systemPath = Path.Combine(SystemColorDir, fileName);
@@ -185,7 +179,7 @@ internal class IccProfileService(DisplayService displayService)
         if (!File.Exists(profilePath))
         {
             Logger.Log($"Profile file not found: {profilePath}");
-            return null!;
+            return null;
         }
 
         bool ok = ColorProfileApi.InstallColorProfileW(null, profilePath);
@@ -193,7 +187,7 @@ internal class IccProfileService(DisplayService displayService)
         {
             int err = Marshal.GetLastWin32Error();
             Logger.Log($"InstallColorProfileW failed for '{profilePath}': error {err}");
-            return null!;
+            return null;
         }
 
         Logger.Log($"Installed profile '{fileName}' to system color directory");
@@ -213,7 +207,8 @@ internal class IccProfileService(DisplayService displayService)
             if (ColorProfileApi.WcsGetCalibrationManagementState(out bool enabled) && enabled)
             {
                 ColorProfileApi.WcsSetCalibrationManagementState(false);
-                ColorProfileApi.WcsSetCalibrationManagementState(true);
+                if (!ColorProfileApi.WcsSetCalibrationManagementState(true))
+                    Logger.Log($"Re-enabling calibration management failed: error {Marshal.GetLastWin32Error()}");
             }
             else
             {

@@ -161,23 +161,19 @@ internal static class UpdateService
         if (available.DownloadUrl == null || available.Sha256 == null || available.LatestVersion == null)
             return Fail("Nothing to download");
 
-        string zipPath = Path.Combine(Path.GetTempPath(), $"TandemHDR-v{available.LatestVersion}.zip");
         string staged = Path.Combine(ExeDir, StagedName);
 
         try
         {
-            using (var response = await Http.GetAsync(available.DownloadUrl, HttpCompletionOption.ResponseHeadersRead))
-            {
-                response.EnsureSuccessStatusCode();
-                using var file = File.Create(zipPath);
-                await response.Content.CopyToAsync(file);
-            }
+            // Held in memory so the bytes that are hashed are the bytes that are extracted;
+            // a temp file could be swapped between the two. The zip is a few megabytes.
+            byte[] zip = await Http.GetByteArrayAsync(available.DownloadUrl);
 
-            string actual = Convert.ToHexString(SHA256.HashData(await File.ReadAllBytesAsync(zipPath))).ToLowerInvariant();
+            string actual = Convert.ToHexString(SHA256.HashData(zip)).ToLowerInvariant();
             if (actual != available.Sha256)
                 return Fail($"The download did not match the published SHA-256 (got {actual})");
 
-            using (var archive = ZipFile.OpenRead(zipPath))
+            using (var archive = new ZipArchive(new MemoryStream(zip), ZipArchiveMode.Read))
             {
                 // Only the exe is taken out of the zip; nothing else in it is installed.
                 var entry = archive.GetEntry(ExeName)
@@ -195,10 +191,6 @@ internal static class UpdateService
             try { File.Delete(staged); } catch { /* best effort */ }
             return Fail(ex.Message);
         }
-        finally
-        {
-            try { File.Delete(zipPath); } catch { /* best effort */ }
-        }
     }
 
     /// <summary>Swaps the staged exe in and relaunches. A running exe cannot be overwritten
@@ -206,7 +198,8 @@ internal static class UpdateService
     /// start. Returns false if the swap failed, leaving this install intact.</summary>
     public static bool ApplyStagedUpdateAndRestart()
     {
-        string current = Path.Combine(ExeDir, ExeName);
+        // The running exe, not a fixed name: a renamed copy would otherwise never update.
+        string current = Environment.ProcessPath ?? Path.Combine(ExeDir, ExeName);
         string staged = Path.Combine(ExeDir, StagedName);
         string old = Path.Combine(ExeDir, SupersededName);
 
@@ -231,7 +224,8 @@ internal static class UpdateService
         catch (Exception ex)
         {
             Logger.Log($"Update swap failed after renaming the old exe, rolling back: {ex.Message}");
-            File.Move(old, current);
+            try { File.Move(old, current); }
+            catch (Exception rollback) { Logger.Log($"Rollback failed; the app is at {old}: {rollback.Message}"); }
             return false;
         }
 

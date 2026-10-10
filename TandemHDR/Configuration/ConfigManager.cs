@@ -29,6 +29,7 @@ internal static class ConfigManager
                 var loaded = JsonSerializer.Deserialize<AppConfig>(json, Options);
                 if (loaded != null)
                 {
+                    Normalise(loaded);
                     Logger.Log("Config loaded from the registry");
                     return loaded;
                 }
@@ -73,6 +74,21 @@ internal static class ConfigManager
         }
     }
 
+    /// <summary>Moves the old bare path list into <see cref="AppConfig.Programs"/>, and
+    /// repairs what hand-edited or older JSON can leave behind: an explicit null overrides
+    /// the initialiser and would crash the watcher on every launch.</summary>
+    private static void Normalise(AppConfig config)
+    {
+        config.Programs ??= [];
+        foreach (string path in config.HdrPrograms ?? [])
+        {
+            if (!config.Programs.Any(p => string.Equals(p.Path, path, StringComparison.OrdinalIgnoreCase)))
+                config.Programs.Add(new WatchedProgram { Path = path });
+        }
+        config.HdrPrograms = null;
+        config.Programs.RemoveAll(p => p == null || string.IsNullOrWhiteSpace(p.Path));
+    }
+
     /// <summary>Picks up the config.json that older versions kept beside the exe, so an
     /// update does not silently reset a working setup. The file is left in place; the
     /// registry copy is authoritative from here on.</summary>
@@ -86,7 +102,11 @@ internal static class ConfigManager
             if (!File.Exists(path)) return null;
 
             var loaded = JsonSerializer.Deserialize<AppConfig>(File.ReadAllText(path), Options);
-            if (loaded != null) Logger.Log($"Imported settings from {path}");
+            if (loaded != null)
+            {
+                Normalise(loaded);
+                Logger.Log($"Imported settings from {path}");
+            }
             return loaded;
         }
         catch (Exception ex)

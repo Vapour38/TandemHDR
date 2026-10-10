@@ -14,19 +14,9 @@ internal class HdrService(DisplayService displayService)
         return display.HdrEnabled ? HdrState.On : HdrState.Off;
     }
 
-    /// <summary>Flips HDR on the primary HDR-capable display and returns the state that actually took effect.</summary>
-    public HdrState ToggleHdr()
-    {
-        var display = displayService.GetPrimaryHdrDisplay();
-        if (display == null || !display.HdrSupported)
-            return HdrState.Unsupported;
-
-        return Apply(display, !display.HdrEnabled);
-    }
-
-    /// <summary>Drives HDR to a specific state rather than flipping it. Used by the program
-    /// watcher, which knows the state it wants and must not care what the state is now.
-    /// A no-op (returning the current state) when HDR is already where it should be.</summary>
+    /// <summary>Drives HDR to a specific state rather than flipping it, and returns the state
+    /// that actually took effect. A no-op (returning the current state) when HDR is already
+    /// where it should be.</summary>
     public HdrState SetHdr(bool enable)
     {
         var display = displayService.GetPrimaryHdrDisplay();

@@ -74,9 +74,6 @@ internal sealed class GameWatcher : IDisposable
         _foregroundProc = OnForegroundChanged;
     }
 
-    /// <summary>The program currently holding HDR on, if any.</summary>
-    public string? RunningProgram => _running;
-
     public void SetWatchList(IEnumerable<string> executablePaths)
     {
         _watched = executablePaths

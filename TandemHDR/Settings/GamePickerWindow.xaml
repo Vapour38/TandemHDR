@@ -3,7 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework"
         x:ClassModifier="internal"
-        Title="Add games"
+        Title="Add programs"
         Width="760" Height="600"
         MinWidth="620" MinHeight="440"
         WindowStyle="None"
@@ -64,7 +64,7 @@
         </Grid.RowDefinitions>
 
         <Grid Grid.Row="0">
-            <TextBlock Text="Add games" Style="{StaticResource CaptionTitleText}" Margin="16,0,0,0" />
+            <TextBlock Text="Add programs" Style="{StaticResource CaptionTitleText}" Margin="16,0,0,0" />
             <Button x:Name="CloseButton" Style="{StaticResource CloseCaptionButton}" Click="OnCancelClick"
                     HorizontalAlignment="Right" VerticalAlignment="Top" ToolTip="Close">
                 <Path Data="M 0,0 L 10,10 M 10,0 L 0,10"

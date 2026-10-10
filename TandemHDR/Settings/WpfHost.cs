@@ -22,8 +22,6 @@ internal static class WpfHost
 
     public static void ShowSettings(
         AppConfig config,
-        DisplayService displayService,
-        HdrService hdrService,
         IccProfileService iccService,
         Func<HdrState> getCurrentState,
         Func<string?> getActiveProfileName,
@@ -40,7 +38,7 @@ internal static class WpfHost
             return;
         }
 
-        _window = new SettingsWindow(config, displayService, hdrService, iccService,
+        _window = new SettingsWindow(config, iccService,
             getCurrentState, getActiveProfileName, onProfileChanged,
             onProgramsChanged, onRestartForUpdate, onDataRemoved);
         _window.Closed += (_, _) => _window = null;
