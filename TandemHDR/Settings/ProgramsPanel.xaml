@@ -118,10 +118,9 @@
                                 <Grid.RowDefinitions>
                                     <RowDefinition Height="Auto" />
                                     <RowDefinition Height="Auto" />
-                                    <RowDefinition Height="Auto" />
                                 </Grid.RowDefinitions>
 
-                                <TextBlock Grid.Row="0" Text="Program" Style="{StaticResource DetailLabel}"
+                                <TextBlock Grid.Row="0" Text="File" Style="{StaticResource DetailLabel}"
                                            VerticalAlignment="Top" Margin="0,2,0,8" />
                                 <StackPanel Grid.Row="0" Grid.Column="1" Margin="0,0,0,8">
                                     <TextBlock Text="{Binding Path}" ToolTip="{Binding Path}"
@@ -133,14 +132,9 @@
                                                Visibility="{Binding FileMissing, Converter={StaticResource BoolToVis}}" />
                                 </StackPanel>
 
-                                <TextBlock Grid.Row="1" Text="Found in" Style="{StaticResource DetailLabel}"
-                                           Margin="0,0,0,8" />
-                                <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding FoundIn}"
-                                           Style="{StaticResource DetailValue}" Margin="0,0,0,8" />
-
-                                <TextBlock Grid.Row="2" Text="Last played" Style="{StaticResource DetailLabel}"
+                                <TextBlock Grid.Row="1" Text="Last played" Style="{StaticResource DetailLabel}"
                                            Visibility="{Binding HasLastPlayed, Converter={StaticResource BoolToVis}}" />
-                                <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding LastPlayedText}"
+                                <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding LastPlayedText}"
                                            Style="{StaticResource DetailValue}"
                                            Visibility="{Binding HasLastPlayed, Converter={StaticResource BoolToVis}}" />
                             </Grid>
@@ -213,7 +207,7 @@
                 </StackPanel>
             </CheckBox>
             <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
-                <Button x:Name="BrowseProgramButton" Content="Choose .exe…"
+                <Button x:Name="BrowseProgramButton" Content="Browse for a program…"
                         Style="{StaticResource SecondaryButton}"
                         Click="OnAddProgramClick" />
                 <Button x:Name="ScanGamesButton" Content="Add programs…"
@@ -225,7 +219,7 @@
         <!-- The list -->
         <Grid Grid.Row="1">
             <TextBlock x:Name="NoProgramsText" Style="{StaticResource SecondaryText}"
-                       Text="No programs yet. Choose Add programs… to pick from your games and recently run programs."
+                       Text="No programs yet. Choose Add programs… to pick from your installed games and recently run programs."
                        Margin="12,0,0,0" VerticalAlignment="Top" TextWrapping="Wrap" />
 
             <ScrollViewer x:Name="ProgramsScroller" VerticalScrollBarVisibility="Auto">

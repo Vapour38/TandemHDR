@@ -47,7 +47,6 @@ internal sealed class ProgramRow : INotifyPropertyChanged
     public bool FileMissing { get; }
     public bool FileFound => !FileMissing;
     public bool HasSource => !string.IsNullOrWhiteSpace(Program.Source);
-    public string FoundIn => HasSource ? Program.Source! : "Added by hand";
     public bool HasLastPlayed => LastPlayed != null;
     public string LastPlayedText => LastPlayed?.ToString("d MMMM yyyy") ?? string.Empty;
     public bool IsOff => !Program.Enabled;

@@ -132,7 +132,7 @@ internal partial class GamePickerWindow : Window
         NoGamesText.Visibility = _visibleGames.Count > 0 || scanning ? Visibility.Collapsed : Visibility.Visible;
         NoGamesText.Text = _allGames.Count > 0
             ? "No games match that search."
-            : "No games found in your libraries. Try the Recently run tab, or Browse on the Programs tab.";
+            : "No games found in your libraries. Try the Recently run tab, or choose Browse for a program on the Programs tab.";
 
         RecentScroller.Visibility = _visibleRecent.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
         NoRecentText.Visibility = _visibleRecent.Count > 0 ? Visibility.Collapsed : Visibility.Visible;

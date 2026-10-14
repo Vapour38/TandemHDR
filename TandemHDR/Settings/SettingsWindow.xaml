@@ -167,29 +167,21 @@
                                   Content="Check for updates when Tandem HDR starts" Margin="12,0,0,12"
                                   Checked="OnUpdateOnStartToggled" Unchecked="OnUpdateOnStartToggled" />
 
-                        <Border Style="{StaticResource RowBand}" Margin="0">
+                        <Border Margin="12,0,12,0">
                             <StackPanel>
-                                <Grid>
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="*" />
-                                        <ColumnDefinition Width="Auto" />
-                                    </Grid.ColumnDefinitions>
-                                    <StackPanel Grid.Column="0" VerticalAlignment="Center" Margin="0,0,12,0">
-                                        <TextBlock x:Name="UpdateStatusText" Style="{StaticResource BodyText}" />
-                                        <TextBlock x:Name="UpdateDetailText" Style="{StaticResource SecondaryText}"
-                                                   Margin="0,2,0,0" TextWrapping="Wrap" Visibility="Collapsed" />
-                                    </StackPanel>
-                                    <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
-                                        <Button x:Name="SkipVersionButton" Content="Skip this version"
-                                                Style="{StaticResource SecondaryButton}"
-                                                Margin="0,0,8,0" Visibility="Collapsed"
-                                                Click="OnSkipVersionClick" />
-                                        <Button x:Name="UpdateActionButton" Content="Check now"
-                                                Style="{StaticResource SecondaryButton}"
-                                                MinWidth="140"
-                                                Click="OnUpdateActionClick" />
-                                    </StackPanel>
-                                </Grid>
+                                <TextBlock x:Name="UpdateStatusText" Style="{StaticResource BodyText}" />
+                                <TextBlock x:Name="UpdateDetailText" Style="{StaticResource SecondaryText}"
+                                           Margin="0,2,0,0" TextWrapping="Wrap" Visibility="Collapsed" />
+                                <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
+                                    <Button x:Name="UpdateActionButton" Content="Check now"
+                                            Style="{StaticResource SecondaryButton}"
+                                            MinWidth="140"
+                                            Click="OnUpdateActionClick" />
+                                    <Button x:Name="SkipVersionButton" Content="Skip this version"
+                                            Style="{StaticResource SecondaryButton}"
+                                            Margin="8,0,0,0" Visibility="Collapsed"
+                                            Click="OnSkipVersionClick" />
+                                </StackPanel>
 
                                 <!-- What actually changed, straight from the release. Capped
                                      rather than free-growing: notes can run long and this row
@@ -205,33 +197,56 @@
                             </StackPanel>
                         </Border>
 
-                        <!-- Last on the page, with no heading of its own: it is one action,
-                             not a group of settings. -->
-                        <Border Style="{StaticResource RowBand}" Margin="0,32,0,0">
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*" />
-                                    <ColumnDefinition Width="Auto" />
-                                </Grid.ColumnDefinitions>
-                                <StackPanel Grid.Column="0" VerticalAlignment="Center" Margin="0,0,12,0">
-                                    <TextBlock Text="Remove Tandem HDR" Style="{StaticResource BodyText}" />
-                                    <TextBlock Style="{StaticResource SecondaryText}" Margin="0,2,0,0"
-                                               TextWrapping="Wrap"
-                                               Text="Deletes its settings, start-up entry and Start Menu shortcut, then closes. You choose whether to keep your colour profiles." />
-                                </StackPanel>
-                                <Button x:Name="RemoveDataButton" Grid.Column="1" Content="Remove…"
-                                        Style="{StaticResource DangerButton}"
-                                        VerticalAlignment="Center" MinWidth="140"
-                                        Click="OnRemoveDataClick" />
-                            </Grid>
-                        </Border>
-
                     </StackPanel>
                 </ScrollViewer>
             </TabItem>
 
             <TabItem Header="Programs" Style="{StaticResource NavTabItem}">
                 <local:ProgramsPanel x:Name="ProgramsPanel" />
+            </TabItem>
+
+            <TabItem Header="About" Style="{StaticResource NavTabItem}">
+                <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="0">
+                    <StackPanel Margin="24,20,24,24">
+
+                        <!-- Plain centred identity block, as an About page usually is. -->
+                        <StackPanel HorizontalAlignment="Center" Margin="0,16,0,40">
+                            <Image Source="pack://application:,,,/app.ico" Width="64" Height="64"
+                                   HorizontalAlignment="Center" RenderOptions.BitmapScalingMode="HighQuality" />
+                            <TextBlock Text="Tandem HDR" HorizontalAlignment="Center" Margin="0,14,0,0"
+                                       Style="{StaticResource BodyText}" FontSize="22" FontWeight="SemiBold"
+                                       Foreground="{DynamicResource ForegroundPrimaryBrush}" />
+                            <TextBlock x:Name="VersionText" HorizontalAlignment="Center" Margin="0,4,0,0"
+                                       Style="{StaticResource BodyText}" />
+                            <TextBlock HorizontalAlignment="Center" Margin="0,12,0,0"
+                                       Style="{StaticResource BodyText}" TextAlignment="Center" TextWrapping="Wrap"
+                                       Text="Switches HDR on and off, and keeps your colour profile in step." />
+                            <TextBlock HorizontalAlignment="Center" Margin="0,12,0,0"
+                                       Style="{StaticResource BodyText}">
+                                <Hyperlink NavigateUri="https://github.com/Vapour38/TandemHDR"
+                                           RequestNavigate="OnSourceLinkNavigate"
+                                           Foreground="{DynamicResource CheckAccentBrush}">Source code on GitHub</Hyperlink>
+                            </TextBlock>
+                            <TextBlock Text="Copyright © 2026 Lachlan Dennis. MIT License." HorizontalAlignment="Center"
+                                       Margin="0,16,0,0" Style="{StaticResource SecondaryText}" />
+                        </StackPanel>
+
+                        <!-- One action with no heading of its own, kept off the Settings tab. -->
+                        <Border Margin="12,0,12,0">
+                            <StackPanel>
+                                <TextBlock Text="Remove Tandem HDR" Style="{StaticResource BodyText}" />
+                                <TextBlock Style="{StaticResource SecondaryText}" Margin="0,2,0,0"
+                                           TextWrapping="Wrap"
+                                           Text="Deletes its settings, start-up entry and Start Menu shortcut, then closes. You choose whether to keep your colour profiles." />
+                                <Button x:Name="RemoveDataButton" Content="Remove…"
+                                        Style="{StaticResource DangerButton}"
+                                        HorizontalAlignment="Left" Margin="0,12,0,0" MinWidth="140"
+                                        Click="OnRemoveDataClick" />
+                            </StackPanel>
+                        </Border>
+
+                    </StackPanel>
+                </ScrollViewer>
             </TabItem>
 
         </TabControl>

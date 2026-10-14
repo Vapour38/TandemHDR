@@ -70,6 +70,7 @@ internal partial class SettingsWindow : Window
         InitializeComponent();
         if (BuildInfo.IsDev)
             DevBadge.Visibility = Visibility.Visible;
+        VersionText.Text = $"Version {UpdateService.CurrentVersion}" + (BuildInfo.IsDev ? " (dev build)" : "");
 
         _config = config;
         _iccService = iccService;
@@ -116,6 +117,12 @@ internal partial class SettingsWindow : Window
         // The header strip has not been arranged yet when Loaded fires, so place the bar
         // once the layout pass has run — and without animating it in from zero width.
         Dispatcher.BeginInvoke(DispatcherPriority.Loaded, new Action(() => MoveTabIndicator(animate: false)));
+    }
+
+    private void OnSourceLinkNavigate(object sender, System.Windows.Navigation.RequestNavigateEventArgs e)
+    {
+        System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(e.Uri.AbsoluteUri) { UseShellExecute = true });
+        e.Handled = true;
     }
 
     private void OnTabsSelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -258,7 +265,7 @@ internal partial class SettingsWindow : Window
         {
             HdrState.On => ("HDR is on", "AccentBrush"),
             HdrState.Off => ("HDR is off", "NeutralDotBrush"),
-            _ => ("HDR is unsupported", "WarningDotBrush"),
+            _ => ("HDR is not available on this display", "WarningDotBrush"),
         };
 
         StatusText.Text = label;
@@ -309,8 +316,8 @@ internal partial class SettingsWindow : Window
         string? current = isSdr ? _config.SdrProfilePath : _config.HdrProfilePath;
         var dialog = new OpenFileDialog
         {
-            Title = isSdr ? "Choose SDR color profile" : "Choose HDR color profile",
-            Filter = "Color profiles (*.icc;*.icm)|*.icc;*.icm|All files (*.*)|*.*",
+            Title = isSdr ? "Choose SDR colour profile" : "Choose HDR colour profile",
+            Filter = "Colour profiles (*.icc;*.icm)|*.icc;*.icm|All files (*.*)|*.*",
             InitialDirectory = ResolveInitialDirectory(current),
         };
 
@@ -416,7 +423,7 @@ internal partial class SettingsWindow : Window
 
         var (status, detail, action) = _update.Status switch
         {
-            UpdateStatus.UpToDate => ($"Up to date (v{current})", null, "Check now"),
+            UpdateStatus.UpToDate => ("Up to date", null, "Check now"),
             UpdateStatus.Available => ($"Version {_update.LatestVersion} is available",
                                        skipped ? $"You have v{current}. You chose to skip this version."
                                                : $"You have v{current}.", "Download and install"),
@@ -424,7 +431,7 @@ internal partial class SettingsWindow : Window
                                    "Tandem HDR will restart to finish updating.", "Restart now"),
             UpdateStatus.Failed => (_downloadFailed ? "Could not download the update" : "Could not check for updates",
                                     _update.Error, "Try again"),
-            _ => ($"Version {current}", null, "Check now"),
+            _ => ("Check for updates", null, "Check now"),
         };
 
         UpdateStatusText.Text = status;
@@ -448,12 +455,11 @@ internal partial class SettingsWindow : Window
     private void OnRemoveDataClick(object sender, RoutedEventArgs e)
     {
         var confirm = MessageBox.Show(this,
-            "This removes Tandem HDR's settings, its start-up entry and its Start Menu "
-            + "shortcut, then closes the app.\n\n"
-            + "The program itself is not deleted — delete TandemHDR.exe yourself afterwards.",
-            "Remove Tandem HDR", MessageBoxButton.OKCancel, MessageBoxImage.Warning);
+            "Remove Tandem HDR's settings, start-up entry and Start Menu shortcut, then close the app?\n\n"
+            + "TandemHDR.exe is not deleted. Delete it yourself afterwards.",
+            "Remove Tandem HDR", MessageBoxButton.YesNo, MessageBoxImage.Warning);
 
-        if (confirm != MessageBoxResult.OK) return;
+        if (confirm != MessageBoxResult.Yes) return;
 
         // Asked separately: the colour directory is shared with Windows and every other
         // colour-managed app, so a profile there may well still be wanted.
@@ -467,9 +473,9 @@ internal partial class SettingsWindow : Window
         if (installed.Count > 0)
         {
             var alsoProfiles = MessageBox.Show(this,
-                "Also remove the colour profiles Tandem HDR installed into Windows?\n\n"
+                "Also remove the colour profiles that Tandem HDR installed into Windows?\n\n"
                 + string.Join("\n", installed)
-                + "\n\nChoose No if you still want them available in Windows' colour settings.",
+                + "\n\nChoose No to keep them available in Windows' colour settings.",
                 "Remove colour profiles", MessageBoxButton.YesNo, MessageBoxImage.Question);
 
             if (alsoProfiles == MessageBoxResult.Yes)
