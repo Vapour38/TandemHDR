@@ -7,11 +7,9 @@
 **One-click HDR toggle for the Windows tray, with the right ICC profile applied every time.**
 
 [![Latest release](https://img.shields.io/github/v/release/Vapour38/TandemHDR?style=flat-square)](https://github.com/Vapour38/TandemHDR/releases/latest)
-[![Downloads](https://img.shields.io/github/downloads/Vapour38/TandemHDR/total?style=flat-square)](https://github.com/Vapour38/TandemHDR/releases)
-[![Licence: MIT](https://img.shields.io/badge/licence-MIT-blue?style=flat-square)](LICENSE)
 ![Platform: Windows 11 x64](https://img.shields.io/badge/platform-Windows%2011%20x64-0078d4?style=flat-square)
 
-[Download](https://github.com/Vapour38/TandemHDR/releases/latest) · [Features](#features) · [Getting started](#getting-started) · [How it works](#how-it-works)
+[Download latest](https://github.com/Vapour38/TandemHDR/releases/latest) · [Features](#features) · [Getting started](#getting-started) · [How it works](#how-it-works)
 
 </div>
 
@@ -19,9 +17,9 @@
 
 ## Why Tandem HDR?
 
-Windows 11 greatly improves the HDR experience. But when you switch between SDR and HDR, Windows often leaves the wrong ICC profile applied, and colours look washed out.
+Windows 11 has greatly improved the HDR experience. But when you switch between SDR and HDR, Windows often leaves the wrong ICC profile applied, and colours look washed out - especially on displays with incorrectly mapped SDR gamma.
 
-Tandem HDR keeps the display mode and the colour profile in sync. This includes changes you make outside the app, for example in Windows Settings or with the Win+Alt+B shortcut.
+Tandem HDR keeps the display mode and the colour profile in sync. This includes changes you make outside the app, including the Win+Alt+B shortcut.
 
 ## Features
 
@@ -30,32 +28,30 @@ Tandem HDR keeps the display mode and the colour profile in sync. This includes 
 - **One-click toggle.** Left-click the tray icon to switch HDR on or off.
 - **Automatic ICC profile switching.** Set one profile for SDR and one for HDR. Tandem HDR applies the correct one for the active mode.
 - **External change detection.** If HDR changes outside the app, the matching profile is applied again.
-- **Profile guard.** Windows can reset the profile at any time. Tandem HDR re-applies it on a timer. You can turn this off.
+- **Profile guard.** Windows can reset the profile at any time, so Tandem HDR re-applies it on a timer. You can turn this off.
 - **Gamma table support.** The `vcgt` calibration table of the profile is loaded into the GPU, so SDR gamma-correction profiles take effect.
 
 ### Per-program auto-switching
 
-- **Games and apps switch HDR for you.** HDR turns on when a configured program starts. The previous state returns when the last one exits.
+- **Games and apps switch HDR for you.** HDR turns on when a configured program starts, and reverts on exit.
 - **Per-program profile.** Each program can use its own HDR profile.
-- **Launcher scan.** Installed games are found from Steam, Epic, Ubisoft, EA and Xbox/Game Pass. The list is sorted by most recently played.
-- **Correct executable.** The scanner finds the file that runs during play. It avoids launcher stubs and anti-cheat starters.
-- **Recently run list.** Pick standalone installs, GOG games and emulators from a list of programs you ran lately. This needs no administrator rights.
+- **Launcher scan.** Installed games are found from Steam, Epic, Ubisoft, EA and Xbox/Game Pass.
+- **Correct executable.** The scanner finds the file that runs during play, avoiding launcher stubs and anti-cheat starters.
+- **Recently run list.** Pick standalone installs, GOG games and emulators from a list of programs you ran lately.
 - **Manual browse.** Choose any `.exe` yourself.
 - **Safe manual override.** If you change HDR by hand during a game, Tandem HDR does not change it back.
 
 ### Tray and interface
 
 - **Live tray icon.** The icon shows whether HDR is on or off.
-- **Native dark menu.** The right-click menu follows the Windows theme.
-- **Modern settings window.** Settings and Programs tabs, with acrylic backdrop and light or dark theme from Windows. Changes save at once.
+- **Modern settings window.** Settings and Programs tabs, with acrylic backdrop and light or dark theme from Windows. 
 - **Toast notifications.** A notification tells you which profile was applied. You can turn these off.
 - **Start with Windows.** Tandem HDR starts quietly in the tray when you sign in.
-- **Single instance.** Starting the app a second time does not create a second copy.
 
 ### Updates
 
-- **Self-update from GitHub releases.** The app checks the latest release and verifies the SHA-256 hash of the download before it installs.
-- **No installer, no server.** The app is one `.exe` file.
+- **Self-update from GitHub releases.**
+- **No installer, no server.**
 
 ## Getting started
 
@@ -63,13 +59,13 @@ Tandem HDR keeps the display mode and the colour profile in sync. This includes 
 
 - Windows 11 x64
 - An HDR-capable display
-- The [.NET 10 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/10.0). Windows offers a download link on first run if it is not installed.
+- The [.NET 10 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/10.0). Windows will offer a download link on first run if it is not installed.
 
 ### Install
 
 1. Download `TandemHDR-vX.Y.Z.zip` from the [latest release](https://github.com/Vapour38/TandemHDR/releases/latest).
-2. Extract `TandemHDR.exe` to a folder you want to keep. Do not run it from the zip.
-3. Run `TandemHDR.exe`. The settings window opens.
+2. Extract `TandemHDR.exe` to a folder you want to keep.
+3. Run `TandemHDR.exe`. On first launch, the settings window will open.
 4. Set your **SDR profile** and **HDR profile** to your `.icc` or `.icm` files.
 5. Turn on **Start with Windows** if you want the app to run at sign-in.
 
@@ -83,14 +79,13 @@ Tandem HDR keeps the display mode and the colour profile in sync. This includes 
 | Left-click the tray icon | Toggle HDR on or off |
 | Right-click the tray icon | Open the menu: Enable HDR, Settings, Quit |
 | Start `TandemHDR.exe` by hand | Open the settings window |
-| Sign in (with Start with Windows) | Start quietly in the tray |
 
 ### Auto-switching for games
 
 1. Open **Settings**, then the **Programs** tab.
-2. Add a game from the launcher list or the recently run list. You can also browse for an `.exe`.
+2. Add a game from the launcher list or the recently run list. You can also browse for a program.
 3. Optionally choose an HDR profile for that program.
-4. Start the game. HDR turns on. When you close the game, HDR returns to its earlier state.
+4. Start the game. HDR turns on. When you close the game, HDR will return to its previous state.
 
 ## Configuration
 
@@ -100,8 +95,6 @@ All options are in the settings window.
 | --- | --- |
 | SDR profile / HDR profile | The `.icc` or `.icm` file to apply for each mode |
 | Sync with external changes | Re-apply the profile when HDR changes outside the app |
-| Poll interval | How often the app checks the real HDR state (default 5 s) |
-| Re-apply interval | How often the active profile is re-applied (default 30 s, 0 turns it off) |
 | Start with Windows | Run at sign-in |
 | Show notifications | Show a toast when a profile is applied |
 
@@ -123,11 +116,9 @@ cd TandemHDR
 dotnet publish TandemHDR/TandemHDR.csproj -c Release -r win-x64
 ```
 
-You need the .NET 10 SDK.
-
 ## Acknowledgements
 
-The tray icon and dark menu approach take ideas from [HDRTray](https://github.com/res2k/HDRTray).
+The tray icon was inspired by [HDRTray](https://github.com/res2k/HDRTray).
 
 ## Licence
 
