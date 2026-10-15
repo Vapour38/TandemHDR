@@ -28,7 +28,7 @@ Tandem HDR keeps the display mode and the colour profile in sync. This includes 
 - **One-click toggle.** Left-click the tray icon to switch HDR on or off.
 - **Automatic ICC profile switching.** Set one profile for SDR and one for HDR. Tandem HDR applies the correct one for the active mode.
 - **External change detection.** If HDR changes outside the app, the matching profile is applied again.
-- **Profile guard.** Windows can reset the profile at any time, so Tandem HDR re-applies it on a timer. You can turn this off.
+- **Profile guard.** Windows can reset the profile at any time, so Tandem HDR re-applies it on a timer, and again after sleep or a display change.
 - **Gamma table support.** The `vcgt` calibration table of the profile is loaded into the GPU, so SDR gamma-correction profiles take effect.
 
 ### Per-program auto-switching
@@ -37,15 +37,15 @@ Tandem HDR keeps the display mode and the colour profile in sync. This includes 
 - **Per-program profile.** Each program can use its own HDR profile.
 - **Launcher scan.** Installed games are found from Steam, Epic, Ubisoft, EA and Xbox/Game Pass.
 - **Correct executable.** The scanner finds the file that runs during play, avoiding launcher stubs and anti-cheat starters.
-- **Recently run list.** Pick standalone installs, GOG games and emulators from a list of programs you ran lately.
+- **Recently run list.** Pick standalone installs, GOG games and emulators from a list of programs you ran recently.
 - **Manual browse.** Choose any `.exe` yourself.
 - **Safe manual override.** If you change HDR by hand during a game, Tandem HDR does not change it back.
 
 ### Tray and interface
 
 - **Live tray icon.** The icon shows whether HDR is on or off.
-- **Modern settings window.** Settings and Programs tabs, with acrylic backdrop and light or dark theme from Windows. 
-- **Toast notifications.** A notification tells you which profile was applied. You can turn these off.
+- **Modern settings window.** Acrylic backdrop and light or dark theme from Windows. 
+- **Toast notifications.** A notification tells you which profile was applied when HDR switches. You can turn these off. If a profile file is missing, a warning tells you once.
 - **Start with Windows.** Tandem HDR starts quietly in the tray when you sign in.
 
 ### Updates
@@ -77,7 +77,7 @@ Tandem HDR keeps the display mode and the colour profile in sync. This includes 
 | Action | Result |
 | --- | --- |
 | Left-click the tray icon | Toggle HDR on or off |
-| Right-click the tray icon | Open the menu: Enable HDR, Settings, Quit |
+| Right-click the tray icon | Open the menu: Enable HDR, Auto-switch for programs, Settings, Quit |
 | Start `TandemHDR.exe` by hand | Open the settings window |
 
 ### Auto-switching for games

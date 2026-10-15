@@ -1,5 +1,6 @@
 ﻿using System.Drawing.Drawing2D;
 using System.Runtime.InteropServices;
+using Microsoft.Win32;
 using TandemHdr.Configuration;
 using TandemHdr.Native;
 using TandemHdr.Services;
@@ -14,8 +15,13 @@ internal class TandemHdrContext : ApplicationContext
     private const int HdrStateCheckIntervalSeconds = 10;
     private const int ProfileRefreshIntervalSeconds = 60;
 
+    // A display that is waking up or being reconnected is not ready at the moment Windows
+    // reports it, and it reports several changes in a row, so wait for them to settle.
+    private const int ResyncDelaySeconds = 3;
+
     private readonly System.Windows.Forms.Timer _stateCheckTimer;
     private readonly System.Windows.Forms.Timer _profileRefreshTimer;
+    private readonly System.Windows.Forms.Timer _resyncTimer;
     private readonly GameWatcher _gameWatcher;
 
     private readonly HdrService _hdrService;
@@ -24,6 +30,10 @@ internal class TandemHdrContext : ApplicationContext
     private AppConfig _config;
     private HdrState _currentState;
     private string? _lastNotifiedProfile;
+
+    // The file name of a configured profile that could not be found on the last apply, so
+    // the user is told once and not on every refresh.
+    private string? _missingProfile;
 
     // What HDR was doing before a watched program forced it on, so exiting the program
     // puts the display back the way the user had it rather than always turning HDR off.
@@ -39,6 +49,7 @@ internal class TandemHdrContext : ApplicationContext
     private const int IDM_ENABLE_HDR = 1;
     private const int IDM_SETTINGS = 2;
     private const int IDM_QUIT = 3;
+    private const int IDM_AUTO_SWITCH = 4;
 
     #region Native menu and dark mode interop
 
@@ -142,6 +153,14 @@ internal class TandemHdrContext : ApplicationContext
         _gameWatcher.LastExited += OnWatchedProgramExited;
         ApplyWatchListFromConfig();
 
+        // Windows can drop the profile and the gamma table after sleep or a display change.
+        // Subscribed after the GameWatcher on purpose: its Control installs the UI thread's
+        // SynchronizationContext, which SystemEvents captures to raise these events here.
+        _resyncTimer = new System.Windows.Forms.Timer { Interval = ResyncDelaySeconds * 1000 };
+        _resyncTimer.Tick += OnResyncTick;
+        SystemEvents.PowerModeChanged += OnPowerModeChanged;
+        SystemEvents.DisplaySettingsChanged += OnDisplaySettingsChanged;
+
         if (_config.StartWithWindows)
             AutoStartService.SetEnabled(true);
 
@@ -183,13 +202,14 @@ internal class TandemHdrContext : ApplicationContext
             Quit();
         else
             _trayIcon.ShowBalloonTip(5000, AppName,
-                "Could not replace the app's files. Check the log for details.", ToolTipIcon.Error);
+                "Could not replace the app's files.", ToolTipIcon.Error);
     }
 
     private void Quit()
     {
         _stateCheckTimer.Stop();
         _profileRefreshTimer.Stop();
+        _resyncTimer.Stop();
         _gameWatcher.Stop();
         _trayIcon.Visible = false;
         _trayIcon.Dispose();
@@ -219,7 +239,8 @@ internal class TandemHdrContext : ApplicationContext
             // than omitted when nothing is applied: the whole point of the app is that the
             // profile follows HDR, so "no profile" is worth seeing.
             AppendMenuW(menu, MF_STRING | MF_DISABLED | MF_GRAYED, 0,
-                _lastNotifiedProfile is { } profile ? $"Profile: {profile}" : "No profile applied");
+                _missingProfile is { } missing ? $"Profile missing: {missing}"
+                : _lastNotifiedProfile is { } profile ? $"Profile: {profile}" : "No profile applied");
             AppendMenuW(menu, MF_SEPARATOR, 0, null);
 
             // "Enable HDR" — checked when HDR is on
@@ -228,6 +249,9 @@ internal class TandemHdrContext : ApplicationContext
 
             // Make "Enable HDR" the default (bold) item
             SetMenuDefaultItem(menu, IDM_ENABLE_HDR, 0);
+
+            AppendMenuW(menu, MF_STRING | (_config.AutoSwitchForPrograms ? MF_CHECKED : MF_UNCHECKED),
+                IDM_AUTO_SWITCH, "Auto-switch for programs");
 
             AppendMenuW(menu, MF_SEPARATOR, 0, null);
 
@@ -253,6 +277,9 @@ internal class TandemHdrContext : ApplicationContext
             {
                 case IDM_ENABLE_HDR:
                     DoToggle();
+                    break;
+                case IDM_AUTO_SWITCH:
+                    ToggleAutoSwitch();
                     break;
                 case IDM_SETTINGS:
                     OpenSettings();
@@ -283,6 +310,14 @@ internal class TandemHdrContext : ApplicationContext
     private void OnSettingsProfileChanged()
     {
         ShowProfileNotification(ApplyProfile(_currentState), _currentState);
+    }
+
+    private void ToggleAutoSwitch()
+    {
+        _config.AutoSwitchForPrograms = !_config.AutoSwitchForPrograms;
+        ConfigManager.Save(_config);
+        ApplyWatchListFromConfig();
+        WpfHost.SyncAutoSwitch();
     }
 
     /// <summary>Pushes the configured whitelist into the watcher and starts or stops it to
@@ -317,8 +352,27 @@ internal class TandemHdrContext : ApplicationContext
                 System.IO.Path.GetFileNameWithoutExtension(p.Path), _runningProgram, StringComparison.OrdinalIgnoreCase))
             ?.HdrProfilePath;
 
-        return _iccService.ApplyProfileForState(state, _config.SdrProfilePath,
-            string.IsNullOrWhiteSpace(programProfile) ? _config.HdrProfilePath : programProfile);
+        string? hdrProfile = string.IsNullOrWhiteSpace(programProfile) ? _config.HdrProfilePath : programProfile;
+        string? applied = _iccService.ApplyProfileForState(state, _config.SdrProfilePath, hdrProfile);
+
+        string? wanted = state switch
+        {
+            HdrState.On => hdrProfile,
+            HdrState.Off => _config.SdrProfilePath,
+            _ => null,
+        };
+        string? missing = applied == null && !string.IsNullOrWhiteSpace(wanted) && !IccProfileService.ProfileExists(wanted)
+            ? System.IO.Path.GetFileName(wanted)
+            : null;
+
+        // Shown whatever the notification setting: that setting is for profiles applied,
+        // and this is a profile that can no longer be applied at all.
+        if (missing != null && missing != _missingProfile)
+            _trayIcon.ShowBalloonTip(5000, AppName,
+                $"Cannot find the colour profile '{missing}'. Choose it again in Settings.", ToolTipIcon.Warning);
+
+        _missingProfile = missing;
+        return applied;
     }
 
     private void OnWatchedProgramStarted(string program)
@@ -357,7 +411,7 @@ internal class TandemHdrContext : ApplicationContext
         catch (Exception ex)
         {
             Logger.Log($"Failed to set HDR to {(enable ? "on" : "off")}: {ex}");
-            _trayIcon.ShowBalloonTip(3000, AppName, "Failed to switch HDR. Check log for details.", ToolTipIcon.Error);
+            _trayIcon.ShowBalloonTip(3000, AppName, "Failed to switch HDR.", ToolTipIcon.Error);
         }
     }
 
@@ -406,6 +460,29 @@ internal class TandemHdrContext : ApplicationContext
         {
             Logger.Log($"Profile refresh failed: {ex.Message}");
         }
+    }
+
+    private void OnPowerModeChanged(object sender, PowerModeChangedEventArgs e)
+    {
+        if (e.Mode == PowerModes.Resume)
+            ScheduleResync();
+    }
+
+    private void OnDisplaySettingsChanged(object? sender, EventArgs e) => ScheduleResync();
+
+    /// <summary>Restarts the delay, so a burst of events gives one resync.</summary>
+    private void ScheduleResync()
+    {
+        _resyncTimer.Stop();
+        _resyncTimer.Start();
+    }
+
+    private void OnResyncTick(object? sender, EventArgs e)
+    {
+        _resyncTimer.Stop();
+        Logger.Log("Resyncing after a power or display change");
+        OnStateCheckTick(sender, e);
+        OnProfileRefreshTick(sender, e);
     }
 
     private void ShowProfileNotification(string? profileName, HdrState state)
@@ -513,6 +590,10 @@ internal class TandemHdrContext : ApplicationContext
     {
         if (disposing)
         {
+            // Static events: without this they keep the context alive and keep calling it.
+            SystemEvents.PowerModeChanged -= OnPowerModeChanged;
+            SystemEvents.DisplaySettingsChanged -= OnDisplaySettingsChanged;
+            _resyncTimer.Dispose();
             _stateCheckTimer.Dispose();
             _profileRefreshTimer.Dispose();
             _gameWatcher.Dispose();

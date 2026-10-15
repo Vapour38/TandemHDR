@@ -46,6 +46,9 @@ internal static class WpfHost
         _window.Activate();
     }
 
+    /// <summary>Shows a change the tray menu made to the auto-switch setting, if the window is open.</summary>
+    public static void SyncAutoSwitch() => _window?.ProgramsPanel.SyncAutoSwitch();
+
     private static void EnsureApplication()
     {
         if (_app != null) return;

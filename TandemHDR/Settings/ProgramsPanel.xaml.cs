@@ -48,6 +48,15 @@ internal partial class ProgramsPanel : UserControl
         _initializing = false;
     }
 
+    /// <summary>Reads the auto-switch setting again after the tray menu changed it. The
+    /// config is already saved, so the toggle handler must not run.</summary>
+    public void SyncAutoSwitch()
+    {
+        _initializing = true;
+        AutoSwitchCheck.IsChecked = _config.AutoSwitchForPrograms;
+        _initializing = false;
+    }
+
     /// <summary>Opens the first rows. Used by the screenshot probe.</summary>
     internal void ExpandFirst(int count)
     {
